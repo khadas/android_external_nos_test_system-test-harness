@@ -6,13 +6,19 @@ new_http_archive(
     strip_prefix = "googletest-release-1.8.0",
 )
 
-## com_google_protobuf is implicitly defined in Bazel.
-# http_archive(
-#     name = "protobuf",
-#     url = "https://github.com/google/protobuf/archive/v3.3.2.zip",
-#     strip_prefix = "protobuf-3.3.2",
-#     sha256 = "c895ad9fd792532f233ced36969d9cc4daec5cb7de9db0d9b26cf06ccd0183c1",
-# )
+http_archive(
+    name = "com_google_protobuf",
+    url = "https://github.com/google/protobuf/archive/v3.3.2.zip",
+    strip_prefix = "protobuf-3.3.2",
+    sha256 = "c895ad9fd792532f233ced36969d9cc4daec5cb7de9db0d9b26cf06ccd0183c1",
+)
+
+http_archive(
+    name = "com_google_protobuf_cc",
+    url = "https://github.com/google/protobuf/archive/v3.3.2.zip",
+    strip_prefix = "protobuf-3.3.2",
+    sha256 = "c895ad9fd792532f233ced36969d9cc4daec5cb7de9db0d9b26cf06ccd0183c1",
+)
 
 ## This is the rule for when this repository is outside of repo.
 # new_git_repository(

@@ -9,6 +9,8 @@
 #include <sstream>
 #include <thread>
 
+#include "proto/control.pb.h"
+#include "proto/header.pb.h"
 #include "src/lib/inc/crc_16.h"
 
 using std::chrono::duration;
@@ -58,6 +60,8 @@ TestHarness::TestHarness(const char* path) {
 }
 
 TestHarness::~TestHarness() {
+  switchFromProtoApiToConsole();
+
   free(encoder.frame_buffer);
   free(decoder.pdu_buffer);
   std::cout << "CLOSING TEST HARNESS" << std::endl;
@@ -89,6 +93,34 @@ int TestHarness::sendAhdlc(const raw_message &msg) {
   blockingWrite((const char*) encoder.frame_buffer,
                 encoder.frame_info.buffer_index);
   return 0;
+}
+
+int TestHarness::getAhdlc(raw_message* msg) {
+  while (true) {  //TODO? timeout
+    char read_value;
+    while (read(tty_fd, &read_value, 1) <= 0) {}
+
+    ahdlc_op_return return_value =
+        DecodeFrameByte(&decoder, read_value);
+
+    if (return_value == AHDLC_COMPLETE) {
+      if (decoder.frame_info.buffer_index < 2 ||
+          decoder.frame_info.buffer_index < PROTO_BUFFER_MAX_LEN) {
+        return 1;
+      }
+
+      msg->type = decoder.pdu_buffer[0] << 8 | decoder.pdu_buffer[1];
+      msg->data_len = decoder.frame_info.buffer_index - 2;
+      std::copy(decoder.pdu_buffer + 2,
+                decoder.pdu_buffer + decoder.frame_info.buffer_index,
+                msg->data);
+      return 0;
+    }
+
+    if (return_value == AHDLC_CRC_ENGINE_FAILURE) {
+      return 1;
+    }
+  }
 }
 
 void TestHarness::init(const char* path) {
@@ -154,6 +186,23 @@ void TestHarness::switchFromConsoleToProtoApi() {
   std::cout.flush();
 }
 
+raw_message TestHarness::switchFromProtoApiToConsole() {
+  ControlRequest controlRequest;
+  controlRequest.set_type(ControlRequestType::REVERT_TO_CONSOLE);
+  string line;
+  controlRequest.SerializeToString(&line);
+
+  raw_message msg;
+  msg.type = APImessageID::CONTROL_REQUEST;
+
+  std::copy(line.begin(), line.end(), msg.data);
+  msg.data_len = line.size();
+
+  sendAhdlc(msg);
+
+  //getAhdlc(&msg);  // TODO uncomment this when nugget sends the reply
+  return msg;
+}
 
 void TestHarness::blockingWrite(const char* data, size_t len) {
   std::cout << "blockingWrite(..., " <<std::dec << len << ")\n";

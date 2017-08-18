@@ -17,7 +17,7 @@ namespace test_harness {
 const auto BIT_TIME = std::chrono::microseconds(10000 / 1152);
 const auto BYTE_TIME = std::chrono::microseconds(80000 / 1152);
 
-const size_t PROTO_BUFFER_MAX_LEN = 128;
+const size_t PROTO_BUFFER_MAX_LEN = 1024;
 
 struct raw_message {
   uint16_t type;  // The "magic number" used to identify the contents of data[].
@@ -44,6 +44,7 @@ class TestHarness {
   void flushUntil(std::chrono::microseconds end);
 
   int sendAhdlc(const raw_message &msg);
+  int getAhdlc(raw_message* msg);
 
  protected:
   int tty_fd;
@@ -54,6 +55,8 @@ class TestHarness {
   void init(const char* path);
 
   void switchFromConsoleToProtoApi();
+
+  raw_message switchFromProtoApiToConsole();
 
   /** Writes @len bytes from @data until complete. */
   void blockingWrite(const char* data, size_t len);
