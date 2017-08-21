@@ -13,6 +13,9 @@
 #include "proto/header.pb.h"
 #include "src/lib/inc/crc_16.h"
 
+using nugget::app::protoapi::ControlRequest;
+using nugget::app::protoapi::ControlRequestType;
+using nugget::app::protoapi::Notice;
 using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
@@ -96,6 +99,7 @@ int TestHarness::sendAhdlc(const raw_message &msg) {
 }
 
 int TestHarness::getAhdlc(raw_message* msg) {
+  std::cout << "RD: ";
   while (true) {  //TODO? timeout
     char read_value;
     while (read(tty_fd, &read_value, 1) <= 0) {}
@@ -103,9 +107,22 @@ int TestHarness::getAhdlc(raw_message* msg) {
     ahdlc_op_return return_value =
         DecodeFrameByte(&decoder, read_value);
 
+    if (read_value == '\n') {
+      std::cout << "\nRD: ";
+    } else if (isprint(read_value)) {
+      std::cout << read_value;
+    } else if (read_value < 16) {
+      std::cout << "\\0x0" << std::hex << (uint32_t) read_value;
+    } else {
+      std::cout << "\\0x" << std::hex << (uint32_t) read_value;
+    }
+    std::cout.flush();
+
     if (return_value == AHDLC_COMPLETE) {
-      if (decoder.frame_info.buffer_index < 2 ||
-          decoder.frame_info.buffer_index < PROTO_BUFFER_MAX_LEN) {
+      if (decoder.frame_info.buffer_index < 2) {
+        std::cout <<"\n";
+        std::cout.flush();
+        std::cout << "UNDERFLOW ERROR\n";
         return 1;
       }
 
@@ -114,10 +131,18 @@ int TestHarness::getAhdlc(raw_message* msg) {
       std::copy(decoder.pdu_buffer + 2,
                 decoder.pdu_buffer + decoder.frame_info.buffer_index,
                 msg->data);
+      std::cout <<"\n";
+      std::cout.flush();
       return 0;
-    }
-
-    if (return_value == AHDLC_CRC_ENGINE_FAILURE) {
+    } else if (return_value == AHDLC_CRC_ENGINE_FAILURE) {
+      std::cout <<"\n";
+      std::cout << "AHDLC CRC ENGINE ERROR\n";
+      std::cout.flush();
+      return 1;
+    } else if (decoder.frame_info.buffer_index >= PROTO_BUFFER_MAX_LEN) {
+      std::cout <<"\n";
+      std::cout.flush();
+      std::cout << "OVERFLOW ERROR\n";
       return 1;
     }
   }
@@ -187,6 +212,9 @@ void TestHarness::switchFromConsoleToProtoApi() {
 }
 
 raw_message TestHarness::switchFromProtoApiToConsole() {
+  std::cout << "switchFromProtoApiToConsole() start\n";
+  std::cout.flush();
+
   ControlRequest controlRequest;
   controlRequest.set_type(ControlRequestType::REVERT_TO_CONSOLE);
   string line;
@@ -200,7 +228,17 @@ raw_message TestHarness::switchFromProtoApiToConsole() {
 
   sendAhdlc(msg);
 
-  //getAhdlc(&msg);  // TODO uncomment this when nugget sends the reply
+
+  if (getAhdlc(&msg) == 0 && msg.type == APImessageID::NOTICE) {
+    Notice message;
+    message.ParseFromArray((char *) msg.data, msg.data_len);
+    std::cout << message.DebugString() <<std::endl;
+  } else {
+    std::cout << "Receive Error" <<std::endl;
+  }
+
+  std::cout << "switchFromProtoApiToConsole() finish\n";
+  std::cout.flush();
   return msg;
 }
 
@@ -238,7 +276,9 @@ string TestHarness::readLineUntilBlock() {
       last_success = high_resolution_clock::now();
       if (isprint(read_value)) {
         ss << read_value;
-      } else {
+      } else if (read_value < 16) {
+        ss << "\\0x0" << std::hex << (uint32_t) read_value;
+      } else  {
         ss << "\\0x" << std::hex << (uint32_t) read_value;
       }
       line.append(1, read_value);
@@ -277,7 +317,9 @@ void TestHarness::flushUntil(microseconds end) {
     while (read_value != '\n' && read(tty_fd, &read_value, 1) > 0) {
       if (isprint(read_value)) {
         ss << read_value;
-      } else {
+      } else if (read_value < 16) {
+        ss << "\\0x0" << std::hex << (uint32_t) read_value;
+      } else  {
         ss << "\\0x" << std::hex << (uint32_t) read_value;
       }
     }

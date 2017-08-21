@@ -17,6 +17,7 @@ class AesTestFixture: public testing::Test {
   }
 
   virtual void TearDown() {
+    harness->flushUntil(test_harness::BYTE_TIME * 1024);
     harness = std::unique_ptr<test_harness::TestHarness>();
   }
 
@@ -25,6 +26,9 @@ class AesTestFixture: public testing::Test {
 };
 
 TEST_F(AesTestFixture, SendRaw) {
+  std::cout << "AesTestFixture::SendRaw()\n";
+  std::cout.flush();
+
   const char content[] = "This is a test message.";
 
   test_harness::raw_message msg;

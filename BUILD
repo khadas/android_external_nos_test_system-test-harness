@@ -7,7 +7,7 @@ COPTS = [
 cc_binary(
     name = "runtests",
     srcs = [
-        "src/aes_test.cc",
+        "src/runtests.cc",
     ],
     deps = [
         ":util",
