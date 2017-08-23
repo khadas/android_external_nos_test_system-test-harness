@@ -79,71 +79,93 @@ void TestHarness::flushConsole() {
   while (readLineUntilBlock().size() > 0) {}
 }
 
+void print_bin(std::ostream &out, uint8_t c) {
+  if (isprint(c)) {
+    out << c;
+  } else if (c < 16) {
+    out << "\\0x0" << std::hex << (uint32_t) c;
+  } else {
+    out << "\\0x" << std::hex << (uint32_t) c;
+  }
+}
+
 int TestHarness::sendAhdlc(const raw_message &msg) {
   if (EncodeNewFrame(&encoder) != AHDLC_OK) {
-    return 1;
+    return TRANSPORT_ERROR;
   }
 
   if (EncodeAddByteToFrameBuffer(&encoder, (uint8_t) (msg.type >> 8))
       != AHDLC_OK || EncodeAddByteToFrameBuffer(&encoder, (uint8_t) msg.type)
       != AHDLC_OK) {
-    return 1;
+    return TRANSPORT_ERROR;
   }
   if (EncodeBuffer(&encoder, msg.data, msg.data_len) != AHDLC_OK) {
-    return 1;
+    return TRANSPORT_ERROR;
   }
 
   blockingWrite((const char*) encoder.frame_buffer,
                 encoder.frame_info.buffer_index);
-  return 0;
+  return NO_ERROR;
 }
 
-int TestHarness::getAhdlc(raw_message* msg) {
-  std::cout << "RD: ";
+int TestHarness::getAhdlc(raw_message* msg, microseconds timeout) {
+  std::cout << "RX: ";
+  size_t read_count = 0;
   while (true) {  //TODO? timeout
-    char read_value;
-    while (read(tty_fd, &read_value, 1) <= 0) {}
+    uint8_t read_value;
+    auto start = high_resolution_clock::now();
+    while (read(tty_fd, &read_value, 1) <= 0) {
+      if(timeout >= microseconds(0) &&
+         duration_cast<microseconds>(high_resolution_clock::now() - start) >
+         microseconds(timeout)) {
+        std::cout <<"\n";
+        std::cout.flush();
+        return TIMEOUT;
+      }
+    }
+    ++read_count;
 
     ahdlc_op_return return_value =
         DecodeFrameByte(&decoder, read_value);
 
     if (read_value == '\n') {
-      std::cout << "\nRD: ";
-    } else if (isprint(read_value)) {
-      std::cout << read_value;
-    } else if (read_value < 16) {
-      std::cout << "\\0x0" << std::hex << (uint32_t) read_value;
+      std::cout << "\nRX: ";
     } else {
-      std::cout << "\\0x" << std::hex << (uint32_t) read_value;
+      print_bin(std::cout, read_value);
     }
     std::cout.flush();
 
-    if (return_value == AHDLC_COMPLETE) {
-      if (decoder.frame_info.buffer_index < 2) {
+    if (read_count > 7) {
+      if (return_value == AHDLC_COMPLETE || decoder.decoder_state == DECODE_COMPLETE_BAD_CRC) {
+        if (decoder.frame_info.buffer_index <= 2) {
+          std::cout <<"\n";
+          std::cout.flush();
+          std::cout << "UNDERFLOW ERROR\n";
+          return TRANSPORT_ERROR;
+        }
+
+        msg->type = (decoder.pdu_buffer[0] << 8) | decoder.pdu_buffer[1];
+        msg->data_len = decoder.frame_info.buffer_index - 2;
+        std::copy(decoder.pdu_buffer + 2,
+                  decoder.pdu_buffer + decoder.frame_info.buffer_index,
+                  msg->data);
         std::cout <<"\n";
         std::cout.flush();
-        std::cout << "UNDERFLOW ERROR\n";
-        return 1;
+        return NO_ERROR;
+      } else if (decoder.decoder_state == DECODE_COMPLETE_BAD_CRC) {
+        std::cout <<"\n";
+        std::cout << "AHDLC BAD CRC\n";
+        std::cout.flush();
+        return TRANSPORT_ERROR;
+      } else if (decoder.frame_info.buffer_index >= PROTO_BUFFER_MAX_LEN) {
+        if (AhdlcDecoderInit(&decoder, CRC16) != AHDLC_OK) {
+          fatal_error("AhdlcDecoderInit()");
+        }
+        std::cout <<"\n";
+        std::cout.flush();
+        std::cout << "OVERFLOW ERROR\n";
+        return OVERFLOW_ERROR;
       }
-
-      msg->type = decoder.pdu_buffer[0] << 8 | decoder.pdu_buffer[1];
-      msg->data_len = decoder.frame_info.buffer_index - 2;
-      std::copy(decoder.pdu_buffer + 2,
-                decoder.pdu_buffer + decoder.frame_info.buffer_index,
-                msg->data);
-      std::cout <<"\n";
-      std::cout.flush();
-      return 0;
-    } else if (return_value == AHDLC_CRC_ENGINE_FAILURE) {
-      std::cout <<"\n";
-      std::cout << "AHDLC CRC ENGINE ERROR\n";
-      std::cout.flush();
-      return 1;
-    } else if (decoder.frame_info.buffer_index >= PROTO_BUFFER_MAX_LEN) {
-      std::cout <<"\n";
-      std::cout.flush();
-      std::cout << "OVERFLOW ERROR\n";
-      return 1;
     }
   }
 }
@@ -229,7 +251,8 @@ raw_message TestHarness::switchFromProtoApiToConsole() {
   sendAhdlc(msg);
 
 
-  if (getAhdlc(&msg) == 0 && msg.type == APImessageID::NOTICE) {
+  if (getAhdlc(&msg, 4096 * BYTE_TIME) == NO_ERROR &&
+      msg.type == APImessageID::NOTICE) {
     Notice message;
     message.ParseFromArray((char *) msg.data, msg.data_len);
     std::cout << message.DebugString() <<std::endl;
@@ -237,13 +260,26 @@ raw_message TestHarness::switchFromProtoApiToConsole() {
     std::cout << "Receive Error" <<std::endl;
   }
 
+  flushUntil(BYTE_TIME * 4096);
+
   std::cout << "switchFromProtoApiToConsole() finish\n";
   std::cout.flush();
   return msg;
 }
 
 void TestHarness::blockingWrite(const char* data, size_t len) {
-  std::cout << "blockingWrite(..., " <<std::dec << len << ")\n";
+  std::cout << "TX: ";
+  for (size_t i = 0; i < len; ++i) {
+    uint8_t value = data[i];
+    if (value == '\n') {
+      std::cout << "\nTX: ";
+    } else {
+      print_bin(std::cout, value);
+    }
+  }
+  std::cout << "\n";
+  std::cout.flush();
+
   size_t loc = 0;
   while (loc < len) {
     errno = 0;
@@ -274,13 +310,7 @@ string TestHarness::readLineUntilBlock() {
     errno = 0;
     while (read_value != '\n' && read(tty_fd, &read_value, 1) > 0) {
       last_success = high_resolution_clock::now();
-      if (isprint(read_value)) {
-        ss << read_value;
-      } else if (read_value < 16) {
-        ss << "\\0x0" << std::hex << (uint32_t) read_value;
-      } else  {
-        ss << "\\0x" << std::hex << (uint32_t) read_value;
-      }
+      print_bin(ss, read_value);
       line.append(1, read_value);
     }
     if (errno != 0) {
@@ -300,7 +330,7 @@ string TestHarness::readLineUntilBlock() {
   }
 
   if (line.size() > 0) {
-    std::cout << "RD: " << ss.str() <<"\n";
+    std::cout << "RX: " << ss.str() <<"\n";
     std::cout.flush();
   }
   return line;
@@ -315,13 +345,7 @@ void TestHarness::flushUntil(microseconds end) {
       start) < end) {
     errno = 0;
     while (read_value != '\n' && read(tty_fd, &read_value, 1) > 0) {
-      if (isprint(read_value)) {
-        ss << read_value;
-      } else if (read_value < 16) {
-        ss << "\\0x0" << std::hex << (uint32_t) read_value;
-      } else  {
-        ss << "\\0x" << std::hex << (uint32_t) read_value;
-      }
+      print_bin(ss, read_value);
     }
     if (errno != 0) {
       perror("ERROR read()");
@@ -331,7 +355,7 @@ void TestHarness::flushUntil(microseconds end) {
      * there is no need to continue. */
     if (read_value == '\n') {
       read_value = ' ';
-      std::cout << "RD: " << ss.str() <<"\n";
+      std::cout << "RX: " << ss.str() <<"\n";
       std::cout.flush();
       ss.str("");
       continue;
@@ -343,7 +367,7 @@ void TestHarness::flushUntil(microseconds end) {
 
   string remaining = ss.str();
   if (remaining.size() > 0) {
-    std::cout << "RD: " << ss.str() <<"\n";
+    std::cout << "RX: " << ss.str() <<"\n";
     std::cout.flush();
   }
 }

@@ -19,6 +19,14 @@ const auto BYTE_TIME = std::chrono::microseconds(80000 / 1152);
 
 const size_t PROTO_BUFFER_MAX_LEN = 1024;
 
+enum error_codes : int {
+  NO_ERROR = 0,
+  GENERIC_ERROR = 1,
+  TIMEOUT = 2,
+  TRANSPORT_ERROR = 3,
+  OVERFLOW_ERROR = 4,
+};
+
 struct raw_message {
   uint16_t type;  // The "magic number" used to identify the contents of data[].
   uint16_t data_len;  // How much data is in the buffer data[].
@@ -44,7 +52,7 @@ class TestHarness {
   void flushUntil(std::chrono::microseconds end);
 
   int sendAhdlc(const raw_message &msg);
-  int getAhdlc(raw_message* msg);
+  int getAhdlc(raw_message* msg, std::chrono::microseconds timeout);
 
  protected:
   int tty_fd;
