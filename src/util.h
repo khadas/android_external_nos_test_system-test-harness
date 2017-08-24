@@ -7,6 +7,8 @@
 #include <iostream>
 #include <vector>
 
+#include <google/protobuf/message.h>
+
 #include "src/lib/inc/frame_layer.h"
 #include "src/lib/inc/frame_layer_types.h"
 
@@ -25,6 +27,7 @@ enum error_codes : int {
   TIMEOUT = 2,
   TRANSPORT_ERROR = 3,
   OVERFLOW_ERROR = 4,
+  SERIALIZE_ERROR = 5,
 };
 
 struct raw_message {
@@ -52,6 +55,10 @@ class TestHarness {
   void flushUntil(std::chrono::microseconds end);
 
   int sendAhdlc(const raw_message &msg);
+  int sendOneofProto(uint16_t type, uint16_t subtype,
+                     const google::protobuf::Message &message);
+  int sendProto(uint16_t type, const google::protobuf::Message &message);
+
   int getAhdlc(raw_message* msg, std::chrono::microseconds timeout);
 
  protected:

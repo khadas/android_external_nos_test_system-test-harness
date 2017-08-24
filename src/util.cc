@@ -36,7 +36,6 @@ string find_uart(){
   while (auto listing = readdir(dir)) {
     // The following is always true so it is not checked:
     // sizeof(listing->d_name) >= sizeof(prefix)
-    std::cout << "CHECKING: " <<listing->d_name << std::endl;
     if (std::equal(prefix, prefix + prefix_length, listing->d_name)) {
       return_value = string(dir_path) + listing->d_name;
       break;
@@ -83,9 +82,9 @@ void print_bin(std::ostream &out, uint8_t c) {
   if (isprint(c)) {
     out << c;
   } else if (c < 16) {
-    out << "\\0x0" << std::hex << (uint32_t) c;
+    out << "\\x0" << std::hex << (uint32_t) c;
   } else {
-    out << "\\0x" << std::hex << (uint32_t) c;
+    out << "\\x" << std::hex << (uint32_t) c;
   }
 }
 
@@ -106,6 +105,43 @@ int TestHarness::sendAhdlc(const raw_message &msg) {
   blockingWrite((const char*) encoder.frame_buffer,
                 encoder.frame_info.buffer_index);
   return NO_ERROR;
+}
+
+int TestHarness::sendOneofProto(uint16_t type, uint16_t subtype,
+                                const google::protobuf::Message &message) {
+  test_harness::raw_message msg;
+  msg.type = type;
+  int msg_size = message.ByteSize();
+  if (msg_size + 2 > (int) PROTO_BUFFER_MAX_LEN) {
+    return OVERFLOW_ERROR;
+  }
+  msg.data[0] = subtype >> 8;
+  msg.data[1] = (uint8_t) subtype;
+
+  msg.data_len = (uint16_t) (msg_size + 2);
+  if (!message.SerializeToArray(msg.data + 2, msg_size)) {
+    return SERIALIZE_ERROR;
+  }
+
+  auto return_value = sendAhdlc(msg);
+  return return_value;
+}
+
+int TestHarness::sendProto(uint16_t type,
+                           const google::protobuf::Message &message) {
+  test_harness::raw_message msg;
+  msg.type = type;
+  int msg_size = message.ByteSize();
+  if (msg_size > (int) PROTO_BUFFER_MAX_LEN) {
+    return OVERFLOW_ERROR;
+  }
+  msg.data_len = (uint16_t) msg_size;
+  if (!message.SerializeToArray(msg.data, msg.data_len)) {
+    return SERIALIZE_ERROR;
+  }
+
+  auto return_value = sendAhdlc(msg);
+  return return_value;
 }
 
 int TestHarness::getAhdlc(raw_message* msg, microseconds timeout) {
@@ -137,7 +173,7 @@ int TestHarness::getAhdlc(raw_message* msg, microseconds timeout) {
 
     if (read_count > 7) {
       if (return_value == AHDLC_COMPLETE || decoder.decoder_state == DECODE_COMPLETE_BAD_CRC) {
-        if (decoder.frame_info.buffer_index <= 2) {
+        if (decoder.frame_info.buffer_index < 2) {
           std::cout <<"\n";
           std::cout.flush();
           std::cout << "UNDERFLOW ERROR\n";

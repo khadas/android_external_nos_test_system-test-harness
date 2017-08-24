@@ -26,11 +26,15 @@ cc_library(
     ],
     deps = [
         ":control_cc_proto",
+        ":testing_api_cc_proto",
         "@ahdlc//:ahdlc",
     ],
 )
 
-## Proto example
+################################################################################
+# proto cc libraries
+################################################################################
+
 cc_proto_library(
     name = "control_cc_proto",
     deps = [":control_proto"],
@@ -39,6 +43,11 @@ cc_proto_library(
 cc_proto_library(
     name = "diagnostics_api_cc_proto",
     deps = [":diagnostics_api_proto"],
+)
+
+cc_proto_library(
+    name = "testing_api_cc_proto",
+    deps = [":testing_api_proto"],
 )
 
 ################################################################################
@@ -70,4 +79,12 @@ proto_library(
 proto_library(
     name = "header_proto",
     srcs = ["proto/header.proto"],
+)
+
+proto_library(
+    name = "testing_api_proto",
+    srcs = ["proto/testing_api.proto"],
+    deps = [
+        ":header_proto",
+    ],
 )
