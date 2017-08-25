@@ -79,7 +79,9 @@ void TestHarness::flushConsole() {
 }
 
 void print_bin(std::ostream &out, uint8_t c) {
-  if (isprint(c)) {
+  if (c == '\\') {
+    out << "\\\\";
+  } else if (isprint(c)) {
     out << c;
   } else if (c < 16) {
     out << "\\x0" << std::hex << (uint32_t) c;
@@ -186,6 +188,11 @@ int TestHarness::getAhdlc(raw_message* msg, microseconds timeout) {
                   decoder.pdu_buffer + decoder.frame_info.buffer_index,
                   msg->data);
         std::cout <<"\n";
+        if (return_value == AHDLC_COMPLETE) {
+          std::cout << "GOOD CRC\n";
+        } else {
+          std::cout << "BAD CRC\n";
+        }
         std::cout.flush();
         return NO_ERROR;
       } else if (decoder.decoder_state == DECODE_COMPLETE_BAD_CRC) {
@@ -210,34 +217,64 @@ void TestHarness::init(const char* path) {
   std::cout << "init() start\n";
   std::cout.flush();
 
-  encoder.buffer_len = PROTO_BUFFER_MAX_LEN * 2;
+  encoder.buffer_len = PROTO_BUFFER_MAX_LEN;
   encoder.frame_buffer = reinterpret_cast<uint8_t*>(malloc(encoder.buffer_len));
   if (ahdlcEncoderInit(&encoder, CRC16) != AHDLC_OK) {
     fatal_error("ahdlcEncoderInit()");
   }
 
-  decoder.buffer_len = PROTO_BUFFER_MAX_LEN * 2;
+  decoder.buffer_len = PROTO_BUFFER_MAX_LEN;
   decoder.pdu_buffer = reinterpret_cast<uint8_t*>(malloc(decoder.buffer_len));
   if (AhdlcDecoderInit(&decoder, CRC16) != AHDLC_OK) {
     fatal_error("AhdlcDecoderInit()");
   }
 
-  memset(&tty_state, 0, sizeof(tty_state));
+  /*memset(&tty_state, 0, sizeof(tty_state));
+
   tty_state.c_cc[VMIN] = 0;
   tty_state.c_cc[VTIME] = 0;
   tty_state.c_iflag = CREAD | CS8 | CLOCAL;
   cfsetispeed(&tty_state, B115200);
-  cfsetospeed(&tty_state, B115200);
+  cfsetospeed(&tty_state, B115200);*/
 
   errno = 0;
-  tty_fd = open(path, O_RDWR | O_NONBLOCK);
+  //tty_fd = open(path, O_RDWR | O_NONBLOCK);
+  tty_fd = open(path, O_RDWR | O_NOCTTY | O_NDELAY);
   if (errno != 0) {
     perror("ERROR open()");
+    fatal_error("");
   }
   errno = 0;
-  tcsetattr(tty_fd, TCSAFLUSH, &tty_state);
-  if (errno != 0) {
+
+  if (!isatty(tty_fd)) {
+    fatal_error("Path is not a tty");
+  }
+
+  if (tcgetattr(tty_fd, &tty_state)) {
+    perror("ERROR tcgetattr()");
+    fatal_error("");
+  }
+
+  if (cfsetospeed(&tty_state, B115200) ||
+      cfsetispeed(&tty_state, B115200)) {
+    perror("ERROR cfsetospeed()");
+    fatal_error("");
+  }
+
+  tty_state.c_cc[VMIN] = 0;
+  tty_state.c_cc[VTIME] = 0;
+
+  tty_state.c_iflag = tty_state.c_iflag & ~(IXON | ISTRIP | INPCK | PARMRK |
+                                            INLCR | ICRNL | BRKINT | IGNBRK);
+  tty_state.c_iflag = 0;
+  tty_state.c_oflag = 0;
+  tty_state.c_lflag = tty_state.c_lflag & ~(ECHO | ECHONL | ICANON | IEXTEN |
+                                            ISIG);
+  tty_state.c_cflag = (tty_state.c_cflag & ~(CSIZE | PARENB)) | CS8;
+
+  if (tcsetattr(tty_fd, TCSAFLUSH, &tty_state)) {
     perror("ERROR tcsetattr()");
+    fatal_error("");
   }
 
   std::cout << "init() finish\n";

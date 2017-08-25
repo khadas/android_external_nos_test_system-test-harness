@@ -1,5 +1,7 @@
 
 #include <algorithm>
+#include <fstream>
+#include <iostream>
 #include <memory>
 
 #include "gtest/gtest.h"
@@ -49,7 +51,7 @@ TEST_F(NuggetOsTestFixture, NoticePingTest) {
   ping_msg.set_notice_code(NoticeCode::PING);
   Notice pong_msg;
 
-  EXPECT_EQ(harness->sendProto(APImessageID::NOTICE, ping_msg), 0);
+  ASSERT_EQ(harness->sendProto(APImessageID::NOTICE, ping_msg), 0);
   cout << ping_msg.DebugString();
   test_harness::raw_message receive_msg;
   EXPECT_EQ(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME), 0);
@@ -59,7 +61,7 @@ TEST_F(NuggetOsTestFixture, NoticePingTest) {
   cout << pong_msg.DebugString() <<std::endl;
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 
-  EXPECT_EQ(harness->sendProto(APImessageID::NOTICE, ping_msg), 0);
+  ASSERT_EQ(harness->sendProto(APImessageID::NOTICE, ping_msg), 0);
   cout << ping_msg.DebugString();
   EXPECT_EQ(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME), 0);
   EXPECT_EQ(receive_msg.type, APImessageID::NOTICE);
@@ -68,7 +70,7 @@ TEST_F(NuggetOsTestFixture, NoticePingTest) {
   cout << pong_msg.DebugString() <<std::endl;
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 
-  EXPECT_EQ(harness->sendProto(APImessageID::NOTICE, ping_msg), 0);
+  ASSERT_EQ(harness->sendProto(APImessageID::NOTICE, ping_msg), 0);
   cout << ping_msg.DebugString();
   EXPECT_EQ(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME), 0);
   harness->flushUntil(test_harness::BYTE_TIME * 1024);
@@ -101,7 +103,67 @@ TEST_F(NuggetOsTestFixture, InvalidMessageTypeTest) {
 
 }
 
-TEST_F(NuggetOsTestFixture, AesCbCTest_) {
+TEST_F(NuggetOsTestFixture, SequenceTest) {
+  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+
+  test_harness::raw_message msg;
+  msg.type = APImessageID::SEND_SEQUENCE;
+  msg.data_len = 256;
+  for (size_t x = 0; x < msg.data_len; ++x) {
+    msg.data[x] = x;
+  }
+
+  EXPECT_EQ(harness->sendAhdlc(msg), 0);
+  EXPECT_EQ(harness->getAhdlc(&msg, 4096 * BYTE_TIME), 0);
+  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+  EXPECT_EQ(msg.type, APImessageID::SEND_SEQUENCE);
+  for (size_t x = 0; x < msg.data_len; ++x) {
+    ASSERT_EQ(msg.data[x], x);
+  }
+}
+
+TEST_F(NuggetOsTestFixture, EchoTest) {
+  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+
+  for (auto key_size : {KeySize::s128b}) {
+    cout << "Testing with a key size of: " << std::dec << (key_size * 8)
+         <<std::endl;
+    AesCbcEncryptTest request;
+    request.set_key_size(key_size);
+    request.set_number_of_blocks(10);
+
+    vector<int> key_data(key_size * 8 / sizeof(int));
+    for (auto &part : key_data) {
+      part = random_number_generator();
+    }
+    request.set_key(key_data.data(), key_data.size() * sizeof(int));
+
+    EXPECT_EQ(harness->sendOneofProto(
+        APImessageID::ECHO_THIS,
+        OneofTestParametersCase::kAesCbcEncryptTest,
+        request), 0);
+
+    test_harness::raw_message msg;
+    EXPECT_EQ(harness->getAhdlc(&msg, 4096 * BYTE_TIME), 0);
+    EXPECT_EQ(msg.type, APImessageID::ECHO_THIS);
+    EXPECT_GT(msg.data_len, 2);
+    uint16_t subtype = (msg.data[0] << 8) | msg.data[1];
+    EXPECT_EQ(subtype, OneofTestParametersCase::kAesCbcEncryptTest);
+
+    string proto = request.SerializeAsString();
+    ASSERT_EQ(msg.data_len, proto.size() + 2);
+    for (size_t x = 0; x < proto.size(); ++x) {
+      if ((0x00ff & msg.data[x + 2]) != (0x00ff & proto[x])) {
+        cout << "Failure at x = " << std::dec << x << std::endl;
+      }
+      ASSERT_EQ(0x00ff & msg.data[x + 2], 0x00ff & proto[x]);
+    }
+  }
+
+  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+}
+
+TEST_F(NuggetOsTestFixture, AesCbCTest) {
   harness->flushUntil(test_harness::BYTE_TIME * 1024);
 
   for (auto key_size : {KeySize::s128b, KeySize::s256b, KeySize::s512b}) {
@@ -116,6 +178,15 @@ TEST_F(NuggetOsTestFixture, AesCbCTest_) {
       part = random_number_generator();
     }
     request.set_key(key_data.data(), key_data.size() * sizeof(int));
+
+
+    if (false) { // TODO replace this with a flag
+      std::ofstream outfile;
+      outfile.open("AesCbcEncryptTest_" + std::to_string(key_size * 8) +
+                   ".proto.bin", std::ios_base::binary);
+      outfile << request.SerializeAsString();
+      outfile.close();
+    }
 
     EXPECT_EQ(harness->sendOneofProto(
         APImessageID::TESTING_API_CALL,
