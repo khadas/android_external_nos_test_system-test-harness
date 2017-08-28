@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "gtest/gtest.h"
+#include "gflags/gflags.h"
 #include "proto/control.pb.h"
 #include "proto/header.pb.h"
 #include "proto/testing_api.pb.h"
@@ -16,11 +17,13 @@ using std::cout;
 using std::vector;
 using std::unique_ptr;
 
+DEFINE_bool(nos_test_dump_protos, false, "Dump binary protobufs to a file.");
+
 namespace {
 
 using test_harness::BYTE_TIME;
 
-class NuggetOsTestFixture: public testing::Test {
+class NuggetOsTest: public testing::Test {
  protected:
   static void SetUpTestCase();
   static void TearDownTestCase();
@@ -30,21 +33,21 @@ class NuggetOsTestFixture: public testing::Test {
   static std::random_device random_number_generator;
 };
 
-unique_ptr<test_harness::TestHarness> NuggetOsTestFixture::harness;
-std::random_device NuggetOsTestFixture::random_number_generator;
+unique_ptr<test_harness::TestHarness> NuggetOsTest::harness;
+std::random_device NuggetOsTest::random_number_generator;
 
-void NuggetOsTestFixture::SetUpTestCase() {
+void NuggetOsTest::SetUpTestCase() {
   harness = unique_ptr<test_harness::TestHarness>(
       new test_harness::TestHarness());
   EXPECT_TRUE(harness->ttyState());
 }
 
-void NuggetOsTestFixture::TearDownTestCase() {
+void NuggetOsTest::TearDownTestCase() {
   harness->flushUntil(test_harness::BYTE_TIME * 1024);
   harness = unique_ptr<test_harness::TestHarness>();
 }
 
-TEST_F(NuggetOsTestFixture, NoticePingTest) {
+TEST_F(NuggetOsTest, NoticePingTest) {
   harness->flushUntil(test_harness::BYTE_TIME * 1024);
 
   Notice ping_msg;
@@ -81,7 +84,7 @@ TEST_F(NuggetOsTestFixture, NoticePingTest) {
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 }
 
-TEST_F(NuggetOsTestFixture, InvalidMessageTypeTest) {
+TEST_F(NuggetOsTest, InvalidMessageTypeTest) {
   harness->flushUntil(test_harness::BYTE_TIME * 1024);
 
   const char content[] = "This is a test message.";
@@ -103,7 +106,7 @@ TEST_F(NuggetOsTestFixture, InvalidMessageTypeTest) {
 
 }
 
-TEST_F(NuggetOsTestFixture, SequenceTest) {
+TEST_F(NuggetOsTest, SequenceTest) {
   harness->flushUntil(test_harness::BYTE_TIME * 1024);
 
   test_harness::raw_message msg;
@@ -122,7 +125,7 @@ TEST_F(NuggetOsTestFixture, SequenceTest) {
   }
 }
 
-TEST_F(NuggetOsTestFixture, EchoTest) {
+TEST_F(NuggetOsTest, EchoTest) {
   harness->flushUntil(test_harness::BYTE_TIME * 1024);
 
   for (auto key_size : {KeySize::s128b}) {
@@ -163,7 +166,7 @@ TEST_F(NuggetOsTestFixture, EchoTest) {
   harness->flushUntil(test_harness::BYTE_TIME * 1024);
 }
 
-TEST_F(NuggetOsTestFixture, AesCbCTest) {
+TEST_F(NuggetOsTest, AesCbCTest) {
   harness->flushUntil(test_harness::BYTE_TIME * 1024);
 
   for (auto key_size : {KeySize::s128b, KeySize::s256b, KeySize::s512b}) {
@@ -180,7 +183,7 @@ TEST_F(NuggetOsTestFixture, AesCbCTest) {
     request.set_key(key_data.data(), key_data.size() * sizeof(int));
 
 
-    if (false) { // TODO replace this with a flag
+    if (FLAGS_nos_test_dump_protos) {
       std::ofstream outfile;
       outfile.open("AesCbcEncryptTest_" + std::to_string(key_size * 8) +
                    ".proto.bin", std::ios_base::binary);
