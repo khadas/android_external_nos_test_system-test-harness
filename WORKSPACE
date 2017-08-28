@@ -27,6 +27,13 @@ http_archive(
     sha256 = "4e44b69e709c826734dbbbd5208f61888a2faf63f239d73d8ba0011b2dccc97a",
 )
 
+git_repository(
+    name = "com_googlesource_boringssl_boringssl",
+    remote = "https://boringssl.googlesource.com/boringssl",
+    # branch master-with-bazel
+    commit = "8be09988fd1e74ebfb0bd14d44e92ef791160a00",
+)
+
 ## This is the rule for when this repository is outside of repo.
 # new_git_repository(
 #     name = "ahdlc",

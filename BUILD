@@ -7,15 +7,16 @@ COPTS = [
 cc_binary(
     name = "runtests",
     srcs = [
+        "src/gtest_with_gflags_main.cc",
         "src/nugget_core_tests.cc",
         "src/runtests.cc",
-        "src/gtest_with_gflags_main.cc",
     ],
     deps = [
         ":util",
-        "@nugget//:driver",
         "@com_github_gflags_gflags//:gflags",
+        "@com_googlesource_boringssl_boringssl//:ssl",
         "@gtest//:gtest",
+        "@nugget//:driver",
     ],
 )
 

@@ -16,10 +16,14 @@ using std::string;
 
 namespace test_harness {
 
+/** The approximate time it takes to transmit one bit over UART at 115200
+ * baud. */
 const auto BIT_TIME = std::chrono::microseconds(10000 / 1152);
+/** The approximate time it takes to transmit one byte over UART at 115200
+ * baud. */
 const auto BYTE_TIME = std::chrono::microseconds(80000 / 1152);
 
-const size_t PROTO_BUFFER_MAX_LEN = 1024;
+const size_t PROTO_BUFFER_MAX_LEN = 512;
 
 enum error_codes : int {
   NO_ERROR = 0,
@@ -33,7 +37,7 @@ enum error_codes : int {
 struct raw_message {
   uint16_t type;  // The "magic number" used to identify the contents of data[].
   uint16_t data_len;  // How much data is in the buffer data[].
-  uint8_t data[PROTO_BUFFER_MAX_LEN];  // The payload of the message.
+  uint8_t data[PROTO_BUFFER_MAX_LEN - 2];  // The payload of the message.
 };
 
 class TestHarness {

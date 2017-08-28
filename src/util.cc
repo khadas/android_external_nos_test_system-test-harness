@@ -134,7 +134,7 @@ int TestHarness::sendProto(uint16_t type,
   test_harness::raw_message msg;
   msg.type = type;
   int msg_size = message.ByteSize();
-  if (msg_size > (int) PROTO_BUFFER_MAX_LEN) {
+  if (msg_size > (int) (PROTO_BUFFER_MAX_LEN - 2)) {
     return OVERFLOW_ERROR;
   }
   msg.data_len = (uint16_t) msg_size;
