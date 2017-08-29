@@ -164,11 +164,11 @@ TEST_F(NuggetOsTest, EchoTest) {
   harness->readUntil(test_harness::BYTE_TIME * 1024);
 }
 
-TEST_F(NuggetOsTest, AesCbCTest) {
+TEST_F(NuggetOsTest, AesCbcTest) {
   harness->readUntil(test_harness::BYTE_TIME * 1024);
   const size_t number_of_blocks = 3;
 
-  for (auto key_size : {KeySize::s128b, KeySize::s256b, KeySize::s512b}) {
+  for (auto key_size : {KeySize::s128b, KeySize::s192b, KeySize::s256b}) {
     cout << "Testing with a key size of: " << std::dec << (key_size * 8)
          <<std::endl;
     AesCbcEncryptTest request;
