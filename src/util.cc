@@ -451,4 +451,23 @@ void fatal_error(const string& msg) {
   exit(1);
 }
 
+const char* error_codes_name(int code) {
+  switch (code) {
+    case error_codes::NO_ERROR:
+      return "NO_ERROR";
+    case error_codes::GENERIC_ERROR:
+      return "GENERIC_ERROR";
+    case error_codes::TIMEOUT:
+      return "TIMEOUT";
+    case error_codes::TRANSPORT_ERROR:
+      return "TRANSPORT_ERROR";
+    case error_codes::OVERFLOW_ERROR:
+      return "OVERFLOW_ERROR";
+    case error_codes::SERIALIZE_ERROR:
+      return "SERIALIZE_ERROR";
+    default:
+      return "unknown";
+  }
+}
+
 }  // namespace test_harness

@@ -34,6 +34,8 @@ enum error_codes : int {
   SERIALIZE_ERROR = 5,
 };
 
+const char* error_codes_name(int code);
+
 struct raw_message {
   uint16_t type;  // The "magic number" used to identify the contents of data[].
   uint16_t data_len;  // How much data is in the buffer data[].

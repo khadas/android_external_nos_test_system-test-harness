@@ -21,6 +21,14 @@ using std::unique_ptr;
 
 DEFINE_bool(nos_test_dump_protos, false, "Dump binary protobufs to a file.");
 
+#define ASSERT_NO_ERROR(code) \
+  ASSERT_EQ(code, test_harness::error_codes::NO_ERROR) \
+      << code << " is " << test_harness::error_codes_name(code)
+
+#define ASSERT_MSG_TYPE(msg, type_) \
+  ASSERT_EQ(msg.type, type_) \
+      << msg.type << " is " << APImessageID_Name((APImessageID) msg.type)
+
 namespace {
 
 using test_harness::BYTE_TIME;
@@ -56,36 +64,30 @@ TEST_F(NuggetOsTest, NoticePingTest) {
   ping_msg.set_notice_code(NoticeCode::PING);
   Notice pong_msg;
 
-  ASSERT_EQ(harness->sendProto(APImessageID::NOTICE, ping_msg), 0);
+  ASSERT_NO_ERROR(harness->sendProto(APImessageID::NOTICE, ping_msg));
   cout << ping_msg.DebugString();
   test_harness::raw_message receive_msg;
-  ASSERT_EQ(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME), 0);
-  EXPECT_EQ(receive_msg.type, APImessageID::NOTICE)
-            << receive_msg.type << " is "
-            << APImessageID_Name((APImessageID) receive_msg.type);
+  ASSERT_NO_ERROR(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME));
+  ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
   pong_msg.ParseFromArray((char *) receive_msg.data, receive_msg.data_len);
   cout << pong_msg.DebugString() <<std::endl;
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 
-  ASSERT_EQ(harness->sendProto(APImessageID::NOTICE, ping_msg), 0);
+  ASSERT_NO_ERROR(harness->sendProto(APImessageID::NOTICE, ping_msg));
   cout << ping_msg.DebugString();
-  ASSERT_EQ(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME), 0);
-  EXPECT_EQ(receive_msg.type, APImessageID::NOTICE)
-            << receive_msg.type << " is "
-            << APImessageID_Name((APImessageID) receive_msg.type);
+  ASSERT_NO_ERROR(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME));
+  ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
   pong_msg.ParseFromArray((char *) receive_msg.data, receive_msg.data_len);
   cout << pong_msg.DebugString() <<std::endl;
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 
-  ASSERT_EQ(harness->sendProto(APImessageID::NOTICE, ping_msg), 0);
+  ASSERT_NO_ERROR(harness->sendProto(APImessageID::NOTICE, ping_msg));
   cout << ping_msg.DebugString();
-  ASSERT_EQ(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME), 0);
+  ASSERT_NO_ERROR(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME));
   harness->flushUntil(test_harness::BYTE_TIME * 1024);
-  EXPECT_EQ(receive_msg.type, APImessageID::NOTICE)
-            << receive_msg.type << " is "
-            << APImessageID_Name((APImessageID) receive_msg.type);
+  ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
   pong_msg.ParseFromArray((char *) receive_msg.data, receive_msg.data_len);
   cout << pong_msg.DebugString() <<std::endl;
@@ -102,11 +104,10 @@ TEST_F(NuggetOsTest, InvalidMessageTypeTest) {
   std::copy(content, content + sizeof(content), msg.data);
   msg.data_len = sizeof(content);
 
-  ASSERT_EQ(harness->sendAhdlc(msg), 0);
-  ASSERT_EQ(harness->getAhdlc(&msg, 4096 * BYTE_TIME), 0);
+  ASSERT_NO_ERROR(harness->sendAhdlc(msg));
+  ASSERT_NO_ERROR(harness->getAhdlc(&msg, 4096 * BYTE_TIME));
   harness->flushUntil(test_harness::BYTE_TIME * 1024);
-  EXPECT_EQ(msg.type, APImessageID::NOTICE)
-            << msg.type << " is " << APImessageID_Name((APImessageID) msg.type);
+  ASSERT_MSG_TYPE(msg, APImessageID::NOTICE);
 
   Notice notice_msg;
   notice_msg.ParseFromArray((char *) msg.data, msg.data_len);
@@ -125,11 +126,10 @@ TEST_F(NuggetOsTest, SequenceTest) {
     msg.data[x] = x;
   }
 
-  ASSERT_EQ(harness->sendAhdlc(msg), 0);
-  ASSERT_EQ(harness->getAhdlc(&msg, 4096 * BYTE_TIME), 0);
+  ASSERT_NO_ERROR(harness->sendAhdlc(msg));
+  ASSERT_NO_ERROR(harness->getAhdlc(&msg, 4096 * BYTE_TIME));
   harness->flushUntil(test_harness::BYTE_TIME * 1024);
-  EXPECT_EQ(msg.type, APImessageID::SEND_SEQUENCE)
-            << msg.type << " is " << APImessageID_Name((APImessageID) msg.type);
+  ASSERT_MSG_TYPE(msg, APImessageID::SEND_SEQUENCE);
   for (size_t x = 0; x < msg.data_len; ++x) {
     ASSERT_EQ(msg.data[x], x) << "Inconsistency at index " << x;
   }
@@ -146,12 +146,11 @@ TEST_F(NuggetOsTest, EchoTest) {
     msg.data[x] = random_number_generator();
   }
 
-  EXPECT_EQ(harness->sendAhdlc(msg), 0);
+  ASSERT_NO_ERROR(harness->sendAhdlc(msg));
 
   test_harness::raw_message receive_msg;
-  ASSERT_EQ(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME), 0);
-  EXPECT_EQ(msg.type, APImessageID::ECHO_THIS)
-            << msg.type << " is " << APImessageID_Name((APImessageID) msg.type);
+  ASSERT_NO_ERROR(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME));
+  ASSERT_MSG_TYPE(msg, APImessageID::ECHO_THIS);
   ASSERT_EQ(receive_msg.data_len, msg.data_len);
 
   for (size_t x = 0; x < msg.data_len; ++x) {
@@ -164,7 +163,7 @@ TEST_F(NuggetOsTest, EchoTest) {
 
 TEST_F(NuggetOsTest, AesCbCTest) {
   harness->flushUntil(test_harness::BYTE_TIME * 1024);
-  const size_t number_of_blocks = 10;
+  const size_t number_of_blocks = 3;
 
   for (auto key_size : {KeySize::s128b, KeySize::s256b, KeySize::s512b}) {
     cout << "Testing with a key size of: " << std::dec << (key_size * 8)
@@ -173,7 +172,7 @@ TEST_F(NuggetOsTest, AesCbCTest) {
     request.set_key_size(key_size);
     request.set_number_of_blocks(number_of_blocks);
 
-    vector<int> key_data(key_size * 8 / sizeof(int));
+    vector<int> key_data(key_size / sizeof(int));
     for (auto &part : key_data) {
       part = random_number_generator();
     }
@@ -188,29 +187,30 @@ TEST_F(NuggetOsTest, AesCbCTest) {
       outfile.close();
     }
 
-    ASSERT_EQ(harness->sendOneofProto(
+    ASSERT_NO_ERROR(harness->sendOneofProto(
         APImessageID::TESTING_API_CALL,
         OneofTestParametersCase::kAesCbcEncryptTest,
-        request), 0);
+        request));
 
     test_harness::raw_message msg;
-    ASSERT_EQ(harness->getAhdlc(&msg, 4096 * BYTE_TIME), 0);
-    EXPECT_EQ(msg.type, APImessageID::TESTING_API_RESPONSE)
-              << msg.type << " is "
-              << APImessageID_Name((APImessageID) msg.type);
+    ASSERT_NO_ERROR(harness->getAhdlc(&msg, 4096 * BYTE_TIME));
+    ASSERT_MSG_TYPE(msg, APImessageID::TESTING_API_RESPONSE);
     EXPECT_GT(msg.data_len, 2);
     uint16_t subtype = (msg.data[0] << 8) | msg.data[1];
     EXPECT_EQ(subtype, OneofTestResultsCase::kAesCbcEncryptTestResult);
 
     AesCbcEncryptTestResult result;
     result.ParseFromArray((char *) msg.data + 2, msg.data_len - 2);
-    EXPECT_EQ(result.result_code(), DcryptError::DE_NO_ERROR);
+    EXPECT_EQ(result.result_code(), DcryptError::DE_NO_ERROR)
+        << result.result_code() << " is "
+        << DcryptError_Name(result.result_code());
     ASSERT_EQ(result.cipher_text().size(), number_of_blocks * AES_BLOCK_SIZE)
         << "\n" << result.DebugString();
 
     uint32_t in[4] = {0, 0, 0, 0};
     uint8_t sw_out[AES_BLOCK_SIZE];
     uint8_t iv[AES_BLOCK_SIZE];
+    memset(&iv, 0, sizeof(iv));
     AES_KEY aes_key;
     AES_set_encrypt_key((uint8_t *) key_data.data(), key_size * 8, &aes_key);
     for (size_t x = 0; x < number_of_blocks; ++x) {
