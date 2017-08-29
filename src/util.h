@@ -58,7 +58,7 @@ class TestHarness {
   /** Reads from tty until it would block. */
   void flushConsole();
   /** Reads from tty until the specified duration has passed. */
-  void flushUntil(std::chrono::microseconds end);
+  string readUntil(std::chrono::microseconds end);
 
   int sendAhdlc(const raw_message &msg);
   int sendOneofProto(uint16_t type, uint16_t subtype,
@@ -67,6 +67,10 @@ class TestHarness {
 
   int getAhdlc(raw_message* msg, std::chrono::microseconds timeout);
 
+  bool switchFromConsoleToProtoApi();
+
+  bool switchFromProtoApiToConsole(raw_message* out_msg);
+
  protected:
   int tty_fd;
   struct termios tty_state;
@@ -74,10 +78,6 @@ class TestHarness {
   ahdlc_frame_decoder_t decoder;
 
   void init(const char* path);
-
-  void switchFromConsoleToProtoApi();
-
-  raw_message switchFromProtoApiToConsole();
 
   /** Writes @len bytes from @data until complete. */
   void blockingWrite(const char* data, size_t len);

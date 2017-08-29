@@ -14,6 +14,7 @@ cc_binary(
     deps = [
         ":util",
         "@com_github_gflags_gflags//:gflags",
+        "@com_googlesource_android_platform_external_regex_re2//:regex_re2",
         "@com_googlesource_boringssl_boringssl//:ssl",
         "@gtest//:gtest",
         "@nugget//:driver",

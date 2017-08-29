@@ -51,19 +51,13 @@ string find_uart(){
 TestHarness::TestHarness() {
   string path = find_uart();
   init(path.c_str());
-
-  switchFromConsoleToProtoApi();
 }
 
 TestHarness::TestHarness(const char* path) {
   init(path);
-
-  switchFromConsoleToProtoApi();
 }
 
 TestHarness::~TestHarness() {
-  switchFromProtoApiToConsole();
-
   free(encoder.frame_buffer);
   free(decoder.pdu_buffer);
   std::cout << "CLOSING TEST HARNESS" << std::endl;
@@ -281,17 +275,17 @@ void TestHarness::init(const char* path) {
   std::cout.flush();
 }
 
-void TestHarness::switchFromConsoleToProtoApi() {
+bool TestHarness::switchFromConsoleToProtoApi() {
   std::cout << "switchFromConsoleToProtoApi() start\n";
   std::cout.flush();
 
-  if (tty_fd == -1) { fatal_error("Unable to open tty!"); }
+  if (tty_fd == -1) { return false; }
 
-  flushUntil(BYTE_TIME * 1024);
+  readUntil(BYTE_TIME * 1024);
 
   blockingWrite("version\n", 1);
 
-  flushUntil(BYTE_TIME * 1024);
+  readUntil(BYTE_TIME * 1024);
 
   blockingWrite("\n", 1);
 
@@ -300,13 +294,15 @@ void TestHarness::switchFromConsoleToProtoApi() {
   const char command[] = "protoapi uart on 1\n";
   blockingWrite(command, sizeof(command) - 1);
 
-  flushUntil(BYTE_TIME * 1024);
+  readUntil(BYTE_TIME * 1024);
 
   std::cout << "switchFromConsoleToProtoApi() finish\n";
   std::cout.flush();
+
+  return true;
 }
 
-raw_message TestHarness::switchFromProtoApiToConsole() {
+bool TestHarness::switchFromProtoApiToConsole(raw_message* out_msg) {
   std::cout << "switchFromProtoApiToConsole() start\n";
   std::cout.flush();
 
@@ -321,7 +317,9 @@ raw_message TestHarness::switchFromProtoApiToConsole() {
   std::copy(line.begin(), line.end(), msg.data);
   msg.data_len = line.size();
 
-  sendAhdlc(msg);
+  if (sendAhdlc(msg) != error_codes::NO_ERROR) {
+    return false;
+  }
 
 
   if (getAhdlc(&msg, 4096 * BYTE_TIME) == NO_ERROR &&
@@ -331,13 +329,17 @@ raw_message TestHarness::switchFromProtoApiToConsole() {
     std::cout << message.DebugString() <<std::endl;
   } else {
     std::cout << "Receive Error" <<std::endl;
+    return false;
   }
 
-  flushUntil(BYTE_TIME * 4096);
+  readUntil(BYTE_TIME * 4096);
 
   std::cout << "switchFromProtoApiToConsole() finish\n";
   std::cout.flush();
-  return msg;
+  if (out_msg) {
+    *out_msg = std::move(msg);
+  }
+  return true;
 }
 
 void TestHarness::blockingWrite(const char* data, size_t len) {
@@ -409,40 +411,42 @@ string TestHarness::readLineUntilBlock() {
   return line;
 }
 
-void TestHarness::flushUntil(microseconds end) {
+string TestHarness::readUntil(microseconds end) {
   char read_value = ' ';
+  bool first = true;
   std::stringstream ss;
 
   auto start = high_resolution_clock::now();
   while (duration_cast<microseconds>(high_resolution_clock::now() -
       start) < end) {
     errno = 0;
-    while (read_value != '\n' && read(tty_fd, &read_value, 1) > 0) {
-      print_bin(ss, read_value);
+    while (read(tty_fd, &read_value, 1) > 0) {
+      ss << read_value;
+      if (first) {
+        first = false;
+        std::cout << "RX: ";
+        print_bin(std::cout, read_value);
+      } else if (read_value == '\n') {
+        std::cout << "\n";
+        std::cout.flush();
+        std::cout << "RX: ";
+      } else {
+        print_bin(std::cout, read_value);
+      }
     }
     if (errno != 0) {
       perror("ERROR read()");
     }
 
-    /* If there wasn't anything to read yet, or the end of line is reached
-     * there is no need to continue. */
-    if (read_value == '\n') {
-      read_value = ' ';
-      std::cout << "RX: " << ss.str() <<"\n";
-      std::cout.flush();
-      ss.str("");
-      continue;
-    }
-
     /* Wait for at least one bit time before checking read() again. */
     std::this_thread::sleep_for(BIT_TIME);
   }
-
-  string remaining = ss.str();
-  if (remaining.size() > 0) {
-    std::cout << "RX: " << ss.str() <<"\n";
+  if (!first) {
+    std::cout << "\n";
     std::cout.flush();
   }
+
+  return ss.str();
 }
 
 

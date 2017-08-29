@@ -49,16 +49,19 @@ std::random_device NuggetOsTest::random_number_generator;
 void NuggetOsTest::SetUpTestCase() {
   harness = unique_ptr<test_harness::TestHarness>(
       new test_harness::TestHarness());
+
+  EXPECT_TRUE(harness->switchFromConsoleToProtoApi());
   EXPECT_TRUE(harness->ttyState());
 }
 
 void NuggetOsTest::TearDownTestCase() {
-  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+  harness->readUntil(test_harness::BYTE_TIME * 1024);
+  EXPECT_TRUE(harness->switchFromProtoApiToConsole(NULL));
   harness = unique_ptr<test_harness::TestHarness>();
 }
 
 TEST_F(NuggetOsTest, NoticePingTest) {
-  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+  harness->readUntil(test_harness::BYTE_TIME * 1024);
 
   Notice ping_msg;
   ping_msg.set_notice_code(NoticeCode::PING);
@@ -86,7 +89,7 @@ TEST_F(NuggetOsTest, NoticePingTest) {
   ASSERT_NO_ERROR(harness->sendProto(APImessageID::NOTICE, ping_msg));
   cout << ping_msg.DebugString();
   ASSERT_NO_ERROR(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME));
-  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+  harness->readUntil(test_harness::BYTE_TIME * 1024);
   ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
   pong_msg.ParseFromArray((char *) receive_msg.data, receive_msg.data_len);
@@ -95,7 +98,7 @@ TEST_F(NuggetOsTest, NoticePingTest) {
 }
 
 TEST_F(NuggetOsTest, InvalidMessageTypeTest) {
-  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+  harness->readUntil(test_harness::BYTE_TIME * 1024);
 
   const char content[] = "This is a test message.";
 
@@ -106,7 +109,7 @@ TEST_F(NuggetOsTest, InvalidMessageTypeTest) {
 
   ASSERT_NO_ERROR(harness->sendAhdlc(msg));
   ASSERT_NO_ERROR(harness->getAhdlc(&msg, 4096 * BYTE_TIME));
-  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+  harness->readUntil(test_harness::BYTE_TIME * 1024);
   ASSERT_MSG_TYPE(msg, APImessageID::NOTICE);
 
   Notice notice_msg;
@@ -117,7 +120,7 @@ TEST_F(NuggetOsTest, InvalidMessageTypeTest) {
 }
 
 TEST_F(NuggetOsTest, SequenceTest) {
-  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+  harness->readUntil(test_harness::BYTE_TIME * 1024);
 
   test_harness::raw_message msg;
   msg.type = APImessageID::SEND_SEQUENCE;
@@ -128,7 +131,7 @@ TEST_F(NuggetOsTest, SequenceTest) {
 
   ASSERT_NO_ERROR(harness->sendAhdlc(msg));
   ASSERT_NO_ERROR(harness->getAhdlc(&msg, 4096 * BYTE_TIME));
-  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+  harness->readUntil(test_harness::BYTE_TIME * 1024);
   ASSERT_MSG_TYPE(msg, APImessageID::SEND_SEQUENCE);
   for (size_t x = 0; x < msg.data_len; ++x) {
     ASSERT_EQ(msg.data[x], x) << "Inconsistency at index " << x;
@@ -136,7 +139,7 @@ TEST_F(NuggetOsTest, SequenceTest) {
 }
 
 TEST_F(NuggetOsTest, EchoTest) {
-  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+  harness->readUntil(test_harness::BYTE_TIME * 1024);
 
   test_harness::raw_message msg;
   msg.type = APImessageID::ECHO_THIS;
@@ -158,11 +161,11 @@ TEST_F(NuggetOsTest, EchoTest) {
         << "Inconsistency at index " << x;
   }
 
-  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+  harness->readUntil(test_harness::BYTE_TIME * 1024);
 }
 
 TEST_F(NuggetOsTest, AesCbCTest) {
-  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+  harness->readUntil(test_harness::BYTE_TIME * 1024);
   const size_t number_of_blocks = 3;
 
   for (auto key_size : {KeySize::s128b, KeySize::s256b, KeySize::s512b}) {
@@ -231,7 +234,7 @@ TEST_F(NuggetOsTest, AesCbCTest) {
     }
   }
 
-  harness->flushUntil(test_harness::BYTE_TIME * 1024);
+  harness->readUntil(test_harness::BYTE_TIME * 1024);
 }
 
 }  // namespace

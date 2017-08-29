@@ -34,6 +34,115 @@ git_repository(
     commit = "8be09988fd1e74ebfb0bd14d44e92ef791160a00",
 )
 
+new_git_repository(
+    name = "com_googlesource_android_platform_external_regex_re2",
+    remote = "https://android.googlesource.com/platform/external/regex-re2",
+    # branch master-with-bazel
+    commit = "79cce43a82abc1bc56c65de07a7df47d54e163a9",
+    build_file_content = """
+cc_library(
+    name = "regex_re2",
+    srcs = [
+        "re2/bitstate.cc",
+        "re2/compile.cc",
+        "re2/dfa.cc",
+        "re2/filtered_re2.cc",
+        "re2/filtered_re2.h",
+        "re2/mimics_pcre.cc",
+        "re2/nfa.cc",
+        "re2/onepass.cc",
+        "re2/parse.cc",
+        "re2/perl_groups.cc",
+        "re2/prefilter.cc",
+        "re2/prefilter.h",
+        "re2/prefilter_tree.cc",
+        "re2/prefilter_tree.h",
+        "re2/prog.cc",
+        "re2/prog.h",
+        "re2/re2.cc",
+        "re2/re2.h",
+        "re2/regexp.cc",
+        "re2/regexp.h",
+        "re2/set.cc",
+        "re2/set.h",
+        "re2/simplify.cc",
+        "re2/stringpiece.h",
+        "re2/testing/exhaustive_tester.h",
+        "re2/testing/regexp_generator.h",
+        "re2/testing/string_generator.h",
+        "re2/testing/tester.h",
+        "re2/tostring.cc",
+        "re2/unicode_casefold.cc",
+        "re2/unicode_casefold.h",
+        "re2/unicode_groups.cc",
+        "re2/unicode_groups.h",
+        "re2/variadic_function.h",
+        "re2/walker-inl.h",
+        "util/arena.cc",
+        "util/arena.h",
+        "util/atomicops.h",
+        "util/benchmark.h",
+        "util/flags.h",
+        "util/hash.cc",
+        "util/logging.h",
+        "util/mutex.h",
+        "util/pcre.h",
+        "util/random.h",
+        "util/rune.cc",
+        "util/sparse_array.h",
+        "util/sparse_set.h",
+        "util/stringpiece.cc",
+        "util/stringprintf.cc",
+        "util/strutil.cc",
+        "util/test.h",
+        "util/utf.h",
+        "util/util.h",
+        "util/valgrind.cc",
+        "util/valgrind.h",
+    ],
+    hdrs = [
+        "re2/filtered_re2.h",
+        "re2/re2.h",
+        "re2/set.h",
+        "re2/stringpiece.h",
+        "re2/variadic_function.h",
+    ],
+    visibility = ["//visibility:public"],
+)
+"""
+)
+
+new_local_repository(
+    name = "libmpsse",
+    path = "libmpsse/src",
+    build_file_content = """
+cc_library(
+    name = "libmpsse",
+    srcs = [
+        "fast.c",
+        "mpsse.c",
+        "support.c",
+    ],
+    hdrs = [
+        "config.h",
+        "mpsse.h",
+        "support.h",
+    ],
+    copts = [
+        "-Wall",
+        "-fPIC",
+        "-fno-strict-aliasing",
+        "-g",
+        "-O2",
+    ],
+    linkopts = [
+        "-lftdi",
+    ],
+    visibility = ["//visibility:public"],
+)
+"""
+)
+
 ## This is the rule for when this repository is outside of repo.
 # new_git_repository(
 #     name = "ahdlc",
@@ -57,7 +166,8 @@ cc_library(
         "src/lib/inc/frame_layer_types.h",
     ],
     visibility = ["//visibility:public"],
-)"""
+)
+"""
 )
 
 new_local_repository(
@@ -67,8 +177,8 @@ new_local_repository(
 cc_library(
     name = "libmpsse",
     srcs = [
-        "mpsse.c",
         "fast.c",
+        "mpsse.c",
         "support.c",
     ],
     hdrs = [
@@ -87,7 +197,8 @@ cc_library(
         "-lftdi",
     ],
     visibility = ["//visibility:public"],
-)"""
+)
+"""
 )
 
 new_local_repository(
@@ -102,13 +213,14 @@ cc_library(
     ],
     hdrs = [
         "core/citadel/config_chip.h",
-        "include/application.h",
         "include/app_nugget.h",
+        "include/application.h",
         "util/poker/driver.h",
     ],
+    visibility = ["//visibility:public"],
     deps = [
         "@libmpsse//:libmpsse",
     ],
-    visibility = ["//visibility:public"],
-)"""
+)
+"""
 )
