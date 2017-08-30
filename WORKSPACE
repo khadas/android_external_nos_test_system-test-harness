@@ -1,7 +1,7 @@
 new_http_archive(
     name = "gtest",
     url = "https://github.com/google/googletest/archive/release-1.8.0.zip",
-    build_file = "third_party/BUILD.gtest",
+    build_file = "BUILD.gtest",
     sha256 = "f3ed3b58511efd272eb074a3a6d6fb79d7c2e6a0e374323d1e6bcbcc1ef141bf",
     strip_prefix = "googletest-release-1.8.0",
 )
@@ -28,7 +28,7 @@ http_archive(
 )
 
 git_repository(
-    name = "com_googlesource_boringssl_boringssl",
+    name = "boringssl",
     remote = "https://boringssl.googlesource.com/boringssl",
     # branch master-with-bazel
     commit = "8be09988fd1e74ebfb0bd14d44e92ef791160a00",
@@ -109,12 +109,12 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
 )
-"""
+""",
 )
 
 new_local_repository(
     name = "libmpsse",
-    path = "libmpsse/src",
+    path = "third_party/libmpsse/src",
     build_file_content = """
 cc_library(
     name = "libmpsse",
@@ -140,7 +140,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
 )
-"""
+""",
 )
 
 ## This is the rule for when this repository is outside of repo.
@@ -152,7 +152,7 @@ cc_library(
 ## Use this when a subproject of repo.
 new_local_repository(
     name = "ahdlc",
-    path = "ahdlc",
+    path = "third_party/ahdlc",
     build_file_content = """
 cc_library(
     name = "ahdlc",
@@ -167,12 +167,12 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
 )
-"""
+""",
 )
 
 new_local_repository(
     name = "libmpsse",
-    path = "libmpsse/src",
+    path = "third_party/libmpsse/src",
     build_file_content = """
 cc_library(
     name = "libmpsse",
@@ -198,7 +198,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
 )
-"""
+""",
 )
 
 new_local_repository(
@@ -222,5 +222,53 @@ cc_library(
         "@libmpsse//:libmpsse",
     ],
 )
-"""
+""",
+)
+
+new_local_repository(
+    name = "nugget_util_protobuf",
+    path = "nugget/util/protobuf",
+    build_file_content = """
+proto_library(
+    name = "options_proto",
+    srcs = [
+        "nugget/protobuf/options.proto",
+    ],
+    deps = [
+        "@protobuf_workaround//:descriptor_proto",
+    ],
+    visibility = ["//visibility:public"],
+)
+""",
+)
+
+new_local_repository(
+    name = "nugget_apps",
+    path = "nugget/user",
+    build_file_content = """
+cc_proto_library(
+    name = "weaver_cc_proto",
+    deps = [":weaver_proto"],
+    visibility = ["//visibility:public"],
+)
+
+proto_library(
+    name = "weaver_proto",
+    srcs = ["weaver/weaver.proto"],
+    deps = ["@nugget_util_protobuf//:options_proto"],
+    visibility = ["//visibility:public"],
+)
+""",
+)
+
+new_local_repository(
+    name = "protobuf_workaround",
+    path = "protobuf_workaround",
+    build_file_content = """
+proto_library(
+    name = "descriptor_proto",
+    srcs = ["google/protobuf/descriptor.proto"],
+    visibility = ["//visibility:public"],
+)
+""",
 )

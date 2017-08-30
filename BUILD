@@ -10,14 +10,16 @@ cc_binary(
         "src/gtest_with_gflags_main.cc",
         "src/nugget_core_tests.cc",
         "src/runtests.cc",
+        "src/weaver_tests.cc",
     ],
     deps = [
         ":nugget_driver",
         ":util",
+        "@boringssl//:ssl",
         "@com_github_gflags_gflags//:gflags",
         "@com_googlesource_android_platform_external_regex_re2//:regex_re2",
-        "@com_googlesource_boringssl_boringssl//:ssl",
         "@gtest//:gtest",
+        "@nugget_apps//:weaver_cc_proto",
     ],
 )
 
