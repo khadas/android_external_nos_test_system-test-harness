@@ -106,6 +106,7 @@ TEST_F(NuggetCoreTest, ReverseStringTest) {
 
 // matches [97.721660 Rebooting in 2 seconds]\x0d
 RE2 reboot_message_matcher("\\[[0-9]+\\.[0-9]+ Rebooting in [0-9]+ seconds\\]");
+const auto REBOOT_DELAY = std::chrono::microseconds(2250000);
 
 TEST_F(NuggetCoreTest, SoftRebootTest) {
   test_harness::TestHarness harness;
@@ -120,7 +121,7 @@ TEST_F(NuggetCoreTest, SoftRebootTest) {
   ASSERT_TRUE(RE2::PartialMatch(result, reboot_message_matcher));
   NuggetCoreTest::TearDownTestCase();
   NuggetCoreTest::SetUpTestCase();
-  result = harness.readUntil(std::chrono::microseconds(2025000));
+  result = harness.readUntil(REBOOT_DELAY);
   ASSERT_TRUE(RE2::PartialMatch(
       result, "\\[Reset cause: hibernate rtc-alarm\\]"));
 }
@@ -138,7 +139,7 @@ TEST_F(NuggetCoreTest, HardRebootTest) {
   ASSERT_TRUE(RE2::PartialMatch(result, reboot_message_matcher));
   NuggetCoreTest::TearDownTestCase();
   NuggetCoreTest::SetUpTestCase();
-  result = harness.readUntil(std::chrono::microseconds(2025000));
+  result = harness.readUntil(REBOOT_DELAY);
   ASSERT_TRUE(RE2::PartialMatch(result, "\\[Reset cause: ap-off\\]"));
 }
 
