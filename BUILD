@@ -12,11 +12,25 @@ cc_binary(
         "src/runtests.cc",
     ],
     deps = [
+        ":nugget_driver",
         ":util",
         "@com_github_gflags_gflags//:gflags",
         "@com_googlesource_android_platform_external_regex_re2//:regex_re2",
         "@com_googlesource_boringssl_boringssl//:ssl",
         "@gtest//:gtest",
+    ],
+)
+
+cc_library(
+    name = "nugget_driver",
+    srcs = [
+        "src/nugget_driver.cc",
+    ],
+    hdrs = [
+        "src/nugget_driver.h",
+    ],
+    deps = [
+        "@com_github_gflags_gflags//:gflags",
         "@nugget//:driver",
     ],
 )
