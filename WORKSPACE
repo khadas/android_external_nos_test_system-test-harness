@@ -225,50 +225,12 @@ cc_library(
 """,
 )
 
-new_local_repository(
-    name = "nugget_util_protobuf",
-    path = "nugget/util/protobuf",
-    build_file_content = """
-proto_library(
-    name = "options_proto",
-    srcs = [
-        "nugget/protobuf/options.proto",
-    ],
-    deps = [
-        "@protobuf_workaround//:descriptor_proto",
-    ],
-    visibility = ["//visibility:public"],
-)
-""",
+local_repository(
+    name = "proto",
+    path = "proto",
 )
 
-new_local_repository(
-    name = "nugget_apps",
-    path = "nugget/user",
-    build_file_content = """
-cc_proto_library(
-    name = "weaver_cc_proto",
-    deps = [":weaver_proto"],
-    visibility = ["//visibility:public"],
-)
-
-proto_library(
-    name = "weaver_proto",
-    srcs = ["weaver/weaver.proto"],
-    deps = ["@nugget_util_protobuf//:options_proto"],
-    visibility = ["//visibility:public"],
-)
-""",
-)
-
-new_local_repository(
-    name = "protobuf_workaround",
-    path = "protobuf_workaround",
-    build_file_content = """
-proto_library(
-    name = "descriptor_proto",
-    srcs = ["google/protobuf/descriptor.proto"],
-    visibility = ["//visibility:public"],
-)
-""",
+local_repository(
+    name = "tools",
+    path = "tools",
 )

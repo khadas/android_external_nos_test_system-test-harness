@@ -1,7 +1,7 @@
 
 #include "gtest/gtest.h"
 #include "nugget_driver.h"
-#include "weaver/weaver.pb.h"
+#include "weaver.pb.h"
 
 using nugget_driver::buf;
 using nugget_driver::bufsize;
@@ -35,7 +35,7 @@ TEST_F(WeaverTest, GetConfig) {
   GetConfigRequest request;
   GetConfigResponse response;
 
-  // TODO implement protoc-gen-gugget-client-cc
+  // TODO implement protoc-gen-nugget-client-cc
   /*assert(ns(Weaver_GetConfig)(&request, &response, &retval));
   assert(retval == APP_SUCCESS);
   assert(response.number_of_slots == 64);

@@ -9,8 +9,8 @@
 #include <sstream>
 #include <thread>
 
-#include "proto/control.pb.h"
-#include "proto/header.pb.h"
+#include "protoapi/control.pb.h"
+#include "protoapi/header.pb.h"
 #include "src/lib/inc/crc_16.h"
 
 using nugget::app::protoapi::ControlRequest;
