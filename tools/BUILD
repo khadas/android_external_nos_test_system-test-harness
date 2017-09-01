@@ -1,7 +1,7 @@
 cc_binary(
-    name = "protoc-gen-nugget-test-cc",
+    name = "protoc_gen_nos_client_cpp",
     srcs = [
-        "protoc-gen-nugget-test-cc.cc",
+        "protoc-gen-nos-client-cpp.cc",
     ],
     visibility = ["//visibility:public"],
     deps = [

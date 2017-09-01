@@ -19,6 +19,7 @@ cc_binary(
         "@com_googlesource_android_platform_external_regex_re2//:regex_re2",
         "@gtest//:gtest",
         "@proto//:weaver_cc_proto",
+        "@proto//:weaver_client_proto",
         "@tools//:nugget_driver",
     ],
 )

@@ -2,6 +2,7 @@
 #include "gtest/gtest.h"
 #include "nugget_driver.h"
 #include "weaver.pb.h"
+#include "Weaver.client.h"
 
 using nugget_driver::buf;
 using nugget_driver::bufsize;
@@ -26,21 +27,15 @@ void WeaverTest::TearDownTestCase() {
   nugget_driver::CloseDevice();
 }
 
-#define ASSERT_NO_ERROR(code) \
-  ASSERT_EQ(code, app_status::APP_SUCCESS) \
-      << code << " is " << errorString(code)
-
 TEST_F(WeaverTest, GetConfig) {
-  uint32_t retval = -1;
   GetConfigRequest request;
   GetConfigResponse response;
 
-  // TODO implement protoc-gen-nugget-client-cc
-  /*assert(ns(Weaver_GetConfig)(&request, &response, &retval));
-  assert(retval == APP_SUCCESS);
-  assert(response.number_of_slots == 64);
-  assert(response.key_size == 16);
-  assert(response.value_size == 16);*/
+  Weaver service;
+  ASSERT_NO_ERROR(service.GetConfig(request, response));
+  EXPECT_EQ(response.number_of_slots(), 64);
+  EXPECT_EQ(response.key_size(), 16);
+  EXPECT_EQ(response.value_size(), 16);
 }
 
 

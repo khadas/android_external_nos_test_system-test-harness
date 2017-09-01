@@ -19,8 +19,6 @@ class NuggetCoreTest: public testing::Test {
  protected:
   static void SetUpTestCase();
   static void TearDownTestCase();
-
-  static const char* errorString(uint32_t code);
 };
 
 void NuggetCoreTest::SetUpTestCase() {
@@ -31,30 +29,12 @@ void NuggetCoreTest::TearDownTestCase() {
   nugget_driver::CloseDevice();
 }
 
-const char* NuggetCoreTest::errorString(uint32_t code) {
-  switch (code) {
-    case app_status::APP_SUCCESS:
-      return "APP_SUCCESS";
-    case app_status::APP_ERROR_BOGUS_ARGS:
-      return "APP_ERROR_BOGUS_ARGS";
-    case app_status::APP_ERROR_INTERNAL:
-      return "APP_ERROR_INTERNAL";
-    case app_status::APP_ERROR_TOO_MUCH:
-      return "APP_ERROR_TOO_MUCH";
-    default:
-      return "unknown";
-  }
-}
-
-#define ASSERT_NO_ERROR(code) \
-  ASSERT_EQ(code, app_status::APP_SUCCESS) \
-      << code << " is " << errorString(code)
-
 // ./test_app --id 0 -p 0 -a
 TEST_F(NuggetCoreTest, GetVersionStringTest) {
-  uint32_t replycount;
-  ASSERT_NO_ERROR(call_application(0x00, 0x00, (uint8_t*) buf, 0,
-                                   (uint8_t*) buf, &replycount));
+  uint32_t replycount = nugget_driver::bufsize;
+  ASSERT_NO_ERROR(call_application(APP_ID_NUGGET, NUGGET_PARAM_VERSION,
+                                   (uint8_t*) buf, 0, (uint8_t*) buf,
+                                   &replycount));
   ASSERT_GT(replycount, 0);
   cout << string((char*) buf, replycount) <<"\n";
   cout.flush();
@@ -66,10 +46,10 @@ TEST_F(NuggetCoreTest, ReverseStringTest) {
   ASSERT_LT(sizeof(test_string), nugget_driver::bufsize);
   std::copy(test_string, test_string + sizeof(test_string), buf);
 
-  uint32_t replycount;
-  ASSERT_NO_ERROR(call_application(0x00, 0xbeef, (uint8_t*) buf,
-                                   sizeof(test_string), (uint8_t*) buf,
-                                   &replycount));
+  uint32_t replycount = nugget_driver::bufsize;
+  ASSERT_NO_ERROR(call_application(APP_ID_NUGGET, NUGGET_PARAM_REVERSE,
+                                   (uint8_t*) buf, sizeof(test_string),
+                                   (uint8_t*) buf, &replycount));
 
   ASSERT_EQ(replycount, sizeof(test_string));
 
@@ -87,9 +67,10 @@ TEST_F(NuggetCoreTest, SoftRebootTest) {
   test_harness::TestHarness harness;
 
   buf[0] = 0;  // 0 = soft reboot, 1 = hard reboot
-  uint32_t replycount;
-  ASSERT_NO_ERROR(call_application(0x00, 0x0002, (uint8_t*) buf, 1,
-                                   (uint8_t*) buf, &replycount));
+  uint32_t replycount = nugget_driver::bufsize;
+  ASSERT_NO_ERROR(call_application(APP_ID_NUGGET, NUGGET_PARAM_REBOOT,
+                                   (uint8_t*) buf, 1, (uint8_t*) buf,
+                                   &replycount));
   ASSERT_EQ(replycount, 0);
 
   string result = harness.readUntil(1042 * test_harness::BYTE_TIME);
@@ -105,9 +86,10 @@ TEST_F(NuggetCoreTest, HardRebootTest) {
   test_harness::TestHarness harness;
 
   buf[0] = 1;  // 0 = soft reboot, 1 = hard reboot
-  uint32_t replycount;
-  ASSERT_NO_ERROR(call_application(0x00, 0x0002, (uint8_t*) buf, 1,
-                                   (uint8_t*) buf, &replycount));
+  uint32_t replycount = nugget_driver::bufsize;
+  ASSERT_NO_ERROR(call_application(APP_ID_NUGGET, NUGGET_PARAM_REBOOT,
+                                   (uint8_t*) buf, 1, (uint8_t*) buf,
+                                   &replycount));
   ASSERT_EQ(replycount, 0);
 
   string result = harness.readUntil(1042 * test_harness::BYTE_TIME);
