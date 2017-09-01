@@ -27,18 +27,15 @@ http_archive(
     sha256 = "4e44b69e709c826734dbbbd5208f61888a2faf63f239d73d8ba0011b2dccc97a",
 )
 
-git_repository(
+http_archive(
     name = "boringssl",
-    remote = "https://boringssl.googlesource.com/boringssl",
+    url = "https://boringssl.googlesource.com/boringssl/+archive/74ffd81aa7ec3d0aa3d3d820dbeda934958ca81a.tar.gz",
     # branch master-with-bazel
-    commit = "8be09988fd1e74ebfb0bd14d44e92ef791160a00",
 )
 
-new_git_repository(
+new_http_archive(
     name = "com_googlesource_android_platform_external_regex_re2",
-    remote = "https://android.googlesource.com/platform/external/regex-re2",
-    # branch master-with-bazel
-    commit = "79cce43a82abc1bc56c65de07a7df47d54e163a9",
+    url = "https://android.googlesource.com/platform/external/regex-re2/+archive/79cce43a82abc1bc56c65de07a7df47d54e163a9.tar.gz",
     build_file_content = """
 cc_library(
     name = "regex_re2",
