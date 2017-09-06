@@ -1,7 +1,7 @@
 new_http_archive(
     name = "gtest",
     url = "https://github.com/google/googletest/archive/release-1.8.0.zip",
-    build_file = "BUILD.gtest",
+    build_file = "nugget/BUILD.gtest",
     sha256 = "f3ed3b58511efd272eb074a3a6d6fb79d7c2e6a0e374323d1e6bcbcc1ef141bf",
     strip_prefix = "googletest-release-1.8.0",
 )
@@ -111,7 +111,7 @@ cc_library(
 
 new_local_repository(
     name = "libmpsse",
-    path = "third_party/libmpsse/src",
+    path = "../../third_party/libmpsse/src",
     build_file_content = """
 cc_library(
     name = "libmpsse",
@@ -131,6 +131,9 @@ cc_library(
         "-fno-strict-aliasing",
         "-g",
         "-O2",
+    ],
+    defines = [
+        "LIBFTDI1=0",
     ],
     linkopts = [
         "-lftdi",
@@ -149,7 +152,7 @@ cc_library(
 ## Use this when a subproject of repo.
 new_local_repository(
     name = "ahdlc",
-    path = "third_party/ahdlc",
+    path = "../../third_party/ahdlc",
     build_file_content = """
 cc_library(
     name = "ahdlc",
@@ -167,59 +170,9 @@ cc_library(
 """,
 )
 
-new_local_repository(
-    name = "libmpsse",
-    path = "third_party/libmpsse/src",
-    build_file_content = """
-cc_library(
-    name = "libmpsse",
-    srcs = [
-        "fast.c",
-        "mpsse.c",
-        "support.c",
-    ],
-    hdrs = [
-        "config.h",
-        "mpsse.h",
-        "support.h",
-    ],
-    copts = [
-        "-Wall",
-        "-fPIC",
-        "-fno-strict-aliasing",
-        "-g",
-        "-O2",
-    ],
-    linkopts = [
-        "-lftdi",
-    ],
-    visibility = ["//visibility:public"],
-)
-""",
-)
-
-new_local_repository(
+local_repository(
     name = "nugget",
-    path = "nugget",
-    build_file_content = """
-cc_library(
-    name = "driver",
-    srcs = [
-        "util/poker/driver.c",
-        "util/poker/transport.c",
-    ],
-    hdrs = [
-        "core/citadel/config_chip.h",
-        "include/app_nugget.h",
-        "include/application.h",
-        "util/poker/driver.h",
-    ],
-    visibility = ["//visibility:public"],
-    deps = [
-        "@libmpsse//:libmpsse",
-    ],
-)
-""",
+    path = "../../core/nugget",
 )
 
 local_repository(
