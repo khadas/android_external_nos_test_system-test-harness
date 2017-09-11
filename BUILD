@@ -12,6 +12,7 @@ cc_binary(
         "src/runtests.cc",
         "src/weaver_tests.cc",
     ],
+    copts = COPTS,
     deps = [
         ":util",
         "@boringssl//:ssl",
@@ -32,6 +33,7 @@ cc_library(
     hdrs = [
         "src/util.h",
     ],
+    copts = COPTS,
     deps = [
         "@ahdlc//:ahdlc",
         "@proto//:protoapi_control_cc_proto",

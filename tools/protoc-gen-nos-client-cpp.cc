@@ -205,6 +205,18 @@ uint32_t $class$::$method$(
       $app_id$, $rpc_id$,
       buffer.data(), request_size, buffer.data(), &response_size);
   std::cout << "RECEIVED: " << response_size << " bytes\n";
+
+  /* Prints the raw response to console to make debugging SPI app communication
+   * easier. Ideally this generator will eventually be replaced by libnos.
+   */
+  std::cout << "0x";
+  for (size_t x = 0; x < response_size; ++x) {
+    if (buffer[x] < 16)
+      std::cout << "0";
+    std::cout << std::hex << (uint16_t) buffer[x];
+  }
+
+  std::cout << std::dec << "\n";
   std::cout.flush();
   if (!response.ParseFromArray(buffer.data(), response_size)) {
     return APP_ERROR_RPC;
