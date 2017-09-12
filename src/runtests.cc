@@ -14,8 +14,14 @@
 #include "src/util.h"
 
 
-using namespace nugget::app::protoapi;
-
+using nugget::app::protoapi::AesCbcEncryptTest;
+using nugget::app::protoapi::AesCbcEncryptTestResult;
+using nugget::app::protoapi::DcryptError;
+using nugget::app::protoapi::KeySize;
+using nugget::app::protoapi::Notice;
+using nugget::app::protoapi::NoticeCode;
+using nugget::app::protoapi::OneofTestParametersCase;
+using nugget::app::protoapi::OneofTestResultsCase;
 using std::cout;
 using std::vector;
 using std::unique_ptr;
@@ -27,8 +33,17 @@ DEFINE_bool(nos_test_dump_protos, false, "Dump binary protobufs to a file.");
       << code << " is " << test_harness::error_codes_name(code)
 
 #define ASSERT_MSG_TYPE(msg, type_) \
+do{if(type_ != APImessageID::NOTICE && msg.type == APImessageID::NOTICE){ \
+  Notice received; \
+  received.ParseFromArray(reinterpret_cast<char *>(msg.data), msg.data_len); \
   ASSERT_EQ(msg.type, type_) \
-      << msg.type << " is " << APImessageID_Name((APImessageID) msg.type)
+      << msg.type << " is " << APImessageID_Name((APImessageID) msg.type) \
+      << "\n" << received.DebugString(); \
+}else{ \
+  ASSERT_EQ(msg.type, type_) \
+      << msg.type << " is " << APImessageID_Name((APImessageID) msg.type); \
+}}while(0)
+
 
 namespace {
 
@@ -74,7 +89,8 @@ TEST_F(NuggetOsTest, NoticePingTest) {
   ASSERT_NO_ERROR(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME));
   ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
-  pong_msg.ParseFromArray((char *) receive_msg.data, receive_msg.data_len);
+  pong_msg.ParseFromArray(reinterpret_cast<char *>(receive_msg.data),
+                          receive_msg.data_len);
   cout << pong_msg.DebugString() <<std::endl;
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 
@@ -83,7 +99,8 @@ TEST_F(NuggetOsTest, NoticePingTest) {
   ASSERT_NO_ERROR(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME));
   ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
-  pong_msg.ParseFromArray((char *) receive_msg.data, receive_msg.data_len);
+  pong_msg.ParseFromArray(reinterpret_cast<char *>(receive_msg.data),
+                          receive_msg.data_len);
   cout << pong_msg.DebugString() <<std::endl;
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 
@@ -93,7 +110,8 @@ TEST_F(NuggetOsTest, NoticePingTest) {
   harness->readUntil(test_harness::BYTE_TIME * 1024);
   ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
-  pong_msg.ParseFromArray((char *) receive_msg.data, receive_msg.data_len);
+  pong_msg.ParseFromArray(reinterpret_cast<char *>(receive_msg.data),
+                          receive_msg.data_len);
   cout << pong_msg.DebugString() <<std::endl;
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 }
@@ -114,10 +132,9 @@ TEST_F(NuggetOsTest, InvalidMessageTypeTest) {
   ASSERT_MSG_TYPE(msg, APImessageID::NOTICE);
 
   Notice notice_msg;
-  notice_msg.ParseFromArray((char *) msg.data, msg.data_len);
+  notice_msg.ParseFromArray(reinterpret_cast<char *>(msg.data), msg.data_len);
   cout << notice_msg.DebugString() <<std::endl;
   EXPECT_EQ(notice_msg.notice_code(), NoticeCode::UNRECOGNIZED_MESSAGE);
-
 }
 
 TEST_F(NuggetOsTest, SequenceTest) {
@@ -204,7 +221,8 @@ TEST_F(NuggetOsTest, AesCbcTest) {
     EXPECT_EQ(subtype, OneofTestResultsCase::kAesCbcEncryptTestResult);
 
     AesCbcEncryptTestResult result;
-    result.ParseFromArray((char *) msg.data + 2, msg.data_len - 2);
+    result.ParseFromArray(reinterpret_cast<char *>(msg.data + 2),
+                          msg.data_len - 2);
     EXPECT_EQ(result.result_code(), DcryptError::DE_NO_ERROR)
         << result.result_code() << " is "
         << DcryptError_Name(result.result_code());
@@ -216,10 +234,12 @@ TEST_F(NuggetOsTest, AesCbcTest) {
     uint8_t iv[AES_BLOCK_SIZE];
     memset(&iv, 0, sizeof(iv));
     AES_KEY aes_key;
-    AES_set_encrypt_key((uint8_t *) key_data.data(), key_size * 8, &aes_key);
+    AES_set_encrypt_key(reinterpret_cast<uint8_t *>(key_data.data()),
+                        key_size * 8, &aes_key);
     for (size_t x = 0; x < number_of_blocks; ++x) {
-      AES_cbc_encrypt((uint8_t *) in, (uint8_t *) sw_out, AES_BLOCK_SIZE,
-                      &aes_key, (unsigned char *) iv, true);
+      AES_cbc_encrypt(reinterpret_cast<uint8_t *>(in),
+                      reinterpret_cast<uint8_t *>(sw_out), AES_BLOCK_SIZE,
+                      &aes_key, reinterpret_cast<uint8_t *>(iv), true);
       for (size_t y = 0; y < AES_BLOCK_SIZE; ++y) {
         size_t index = x * AES_BLOCK_SIZE + y;
         ASSERT_EQ(result.cipher_text()[index] & 0x00ff,
