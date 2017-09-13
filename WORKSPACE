@@ -176,6 +176,11 @@ local_repository(
 )
 
 local_repository(
+    name = "host_generic",
+    path = "../../host/generic",
+)
+
+local_repository(
     name = "proto",
     path = "proto",
 )
