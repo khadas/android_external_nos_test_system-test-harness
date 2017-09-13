@@ -3,8 +3,8 @@
 
 extern "C" {
 #include "core/citadel/config_chip.h"
-#include "include/application.h"
-#include "include/app_nugget.h"
+#include "application.h"
+#include "app_nugget.h"
 #include "util/poker/driver.h"
 }
 
