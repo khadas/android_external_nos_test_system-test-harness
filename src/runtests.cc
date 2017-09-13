@@ -22,6 +22,8 @@ using nugget::app::protoapi::Notice;
 using nugget::app::protoapi::NoticeCode;
 using nugget::app::protoapi::OneofTestParametersCase;
 using nugget::app::protoapi::OneofTestResultsCase;
+using nugget::app::protoapi::TrngTest;
+using nugget::app::protoapi::TrngTestResult;
 using std::cout;
 using std::vector;
 using std::unique_ptr;
@@ -44,6 +46,10 @@ do{if(type_ != APImessageID::NOTICE && msg.type == APImessageID::NOTICE){ \
       << msg.type << " is " << APImessageID_Name((APImessageID) msg.type); \
 }}while(0)
 
+#define ASSERT_SUBTYPE(msg, type_) \
+  EXPECT_GT(msg.data_len, 2); \
+  uint16_t subtype = (msg.data[0] << 8) | msg.data[1]; \
+  EXPECT_EQ(subtype, type_)
 
 namespace {
 
@@ -76,7 +82,7 @@ void NuggetOsTest::TearDownTestCase() {
   harness = unique_ptr<test_harness::TestHarness>();
 }
 
-TEST_F(NuggetOsTest, NoticePingTest) {
+TEST_F(NuggetOsTest, NoticePing) {
   harness->readUntil(test_harness::BYTE_TIME * 1024);
 
   Notice ping_msg;
@@ -89,8 +95,8 @@ TEST_F(NuggetOsTest, NoticePingTest) {
   ASSERT_NO_ERROR(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME));
   ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
-  pong_msg.ParseFromArray(reinterpret_cast<char *>(receive_msg.data),
-                          receive_msg.data_len);
+  ASSERT_TRUE(pong_msg.ParseFromArray(
+      reinterpret_cast<char *>(receive_msg.data), receive_msg.data_len));
   cout << pong_msg.DebugString() <<std::endl;
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 
@@ -99,8 +105,8 @@ TEST_F(NuggetOsTest, NoticePingTest) {
   ASSERT_NO_ERROR(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME));
   ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
-  pong_msg.ParseFromArray(reinterpret_cast<char *>(receive_msg.data),
-                          receive_msg.data_len);
+  ASSERT_TRUE(pong_msg.ParseFromArray(
+      reinterpret_cast<char *>(receive_msg.data), receive_msg.data_len));
   cout << pong_msg.DebugString() <<std::endl;
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 
@@ -110,13 +116,13 @@ TEST_F(NuggetOsTest, NoticePingTest) {
   harness->readUntil(test_harness::BYTE_TIME * 1024);
   ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
-  pong_msg.ParseFromArray(reinterpret_cast<char *>(receive_msg.data),
-                          receive_msg.data_len);
+  ASSERT_TRUE(pong_msg.ParseFromArray(
+      reinterpret_cast<char *>(receive_msg.data), receive_msg.data_len));
   cout << pong_msg.DebugString() <<std::endl;
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 }
 
-TEST_F(NuggetOsTest, InvalidMessageTypeTest) {
+TEST_F(NuggetOsTest, InvalidMessageType) {
   harness->readUntil(test_harness::BYTE_TIME * 1024);
 
   const char content[] = "This is a test message.";
@@ -132,12 +138,13 @@ TEST_F(NuggetOsTest, InvalidMessageTypeTest) {
   ASSERT_MSG_TYPE(msg, APImessageID::NOTICE);
 
   Notice notice_msg;
-  notice_msg.ParseFromArray(reinterpret_cast<char *>(msg.data), msg.data_len);
+  ASSERT_TRUE(notice_msg.ParseFromArray(reinterpret_cast<char *>(msg.data),
+                                        msg.data_len));
   cout << notice_msg.DebugString() <<std::endl;
   EXPECT_EQ(notice_msg.notice_code(), NoticeCode::UNRECOGNIZED_MESSAGE);
 }
 
-TEST_F(NuggetOsTest, SequenceTest) {
+TEST_F(NuggetOsTest, Sequence) {
   harness->readUntil(test_harness::BYTE_TIME * 1024);
 
   test_harness::raw_message msg;
@@ -156,7 +163,7 @@ TEST_F(NuggetOsTest, SequenceTest) {
   }
 }
 
-TEST_F(NuggetOsTest, EchoTest) {
+TEST_F(NuggetOsTest, Echo) {
   harness->readUntil(test_harness::BYTE_TIME * 1024);
 
   test_harness::raw_message msg;
@@ -182,7 +189,7 @@ TEST_F(NuggetOsTest, EchoTest) {
   harness->readUntil(test_harness::BYTE_TIME * 1024);
 }
 
-TEST_F(NuggetOsTest, AesCbcTest) {
+TEST_F(NuggetOsTest, AesCbc) {
   harness->readUntil(test_harness::BYTE_TIME * 1024);
   const size_t number_of_blocks = 3;
 
@@ -216,13 +223,11 @@ TEST_F(NuggetOsTest, AesCbcTest) {
     test_harness::raw_message msg;
     ASSERT_NO_ERROR(harness->getAhdlc(&msg, 4096 * BYTE_TIME));
     ASSERT_MSG_TYPE(msg, APImessageID::TESTING_API_RESPONSE);
-    EXPECT_GT(msg.data_len, 2);
-    uint16_t subtype = (msg.data[0] << 8) | msg.data[1];
-    EXPECT_EQ(subtype, OneofTestResultsCase::kAesCbcEncryptTestResult);
+    ASSERT_SUBTYPE(msg, OneofTestResultsCase::kAesCbcEncryptTestResult);
 
     AesCbcEncryptTestResult result;
-    result.ParseFromArray(reinterpret_cast<char *>(msg.data + 2),
-                          msg.data_len - 2);
+    ASSERT_TRUE(result.ParseFromArray(reinterpret_cast<char *>(msg.data + 2),
+                                      msg.data_len - 2));
     EXPECT_EQ(result.result_code(), DcryptError::DE_NO_ERROR)
         << result.result_code() << " is "
         << DcryptError_Name(result.result_code());
@@ -254,6 +259,60 @@ TEST_F(NuggetOsTest, AesCbcTest) {
                 << "Inconsistency at index " << x;
     }
   }
+
+  harness->readUntil(test_harness::BYTE_TIME * 1024);
+}
+
+TEST_F(NuggetOsTest, Trng) {
+  harness->readUntil(test_harness::BYTE_TIME * 1024);
+
+  // Have a bin for every possible byte value.
+  std::vector<size_t> counts(256, 0);
+
+  // Use most of the available space while leaving room for the transport
+  // header, escape sequences, etc.
+  const size_t request_size = 475;
+  const size_t repeats = 10;
+
+  TrngTest request;
+  request.set_number_of_bytes(request_size);
+
+  int verbosity = harness->getVerbosity();
+  for (size_t x = 0; x < repeats; ++x) {
+    ASSERT_NO_ERROR(harness->sendOneofProto(
+        APImessageID::TESTING_API_CALL,
+        OneofTestParametersCase::kTrngTest,
+        request));
+    test_harness::raw_message msg;
+    ASSERT_NO_ERROR(harness->getAhdlc(&msg, 4096 * BYTE_TIME));
+    ASSERT_MSG_TYPE(msg, APImessageID::TESTING_API_RESPONSE);
+    ASSERT_SUBTYPE(msg, OneofTestResultsCase::kTrngTestResult);
+
+    TrngTestResult result;
+    ASSERT_TRUE(result.ParseFromArray(reinterpret_cast<char *>(msg.data + 2),
+                                      msg.data_len - 2));
+    ASSERT_EQ(result.random_bytes().size(), request_size);
+    for (const auto rand_byte : result.random_bytes()) {
+      ++counts[0x00ff & rand_byte];
+    }
+
+    // Print the first exchange only for debugging.
+    if (x == 0) {
+      harness->setVerbosity(harness->getVerbosity() - 1);
+    }
+  }
+  harness->setVerbosity(verbosity);
+
+  double kl_divergence = 0;
+  double ratio = (double) counts.size() / (repeats * request_size);
+  for (const auto count : counts) {
+    ASSERT_NE(count, 0);
+    kl_divergence += count * log2(count * ratio);
+  }
+  kl_divergence *= ratio;
+  cout << "K.L. Divergence: " << kl_divergence <<"\n";
+  cout.flush();
+  ASSERT_LT(kl_divergence, 15.0);
 
   harness->readUntil(test_harness::BYTE_TIME * 1024);
 }

@@ -44,6 +44,14 @@ struct raw_message {
 
 class TestHarness {
  public:
+  enum VerbosityLevels : int {
+    SILENT = 0,
+    CRITICAL = 10,
+    ERROR = 20,
+    WARNING = 30,
+    INFO = 40,
+  };
+
   TestHarness();
   /**
    * @param path The device path to the tty (e.g. "/dev/tty1"). */
@@ -54,6 +62,9 @@ class TestHarness {
   /**
    * @return true if data can be sent and received over the tty. */
   bool ttyState() const;
+
+  int getVerbosity() const;
+  int setVerbosity(int v);
 
   /** Reads from tty until it would block. */
   void flushConsole();
@@ -72,6 +83,7 @@ class TestHarness {
   bool switchFromProtoApiToConsole(raw_message* out_msg);
 
  protected:
+  int verbosity;
   int tty_fd;
   struct termios tty_state;
   ahdlc_frame_encoder_t encoder;

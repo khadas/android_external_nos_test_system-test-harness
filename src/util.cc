@@ -48,12 +48,12 @@ string find_uart(){
   return return_value;
 }
 
-TestHarness::TestHarness() {
+TestHarness::TestHarness() : verbosity(INFO) {
   string path = find_uart();
   init(path.c_str());
 }
 
-TestHarness::TestHarness(const char* path) {
+TestHarness::TestHarness(const char* path) : verbosity(INFO) {
   init(path);
 }
 
@@ -66,6 +66,16 @@ TestHarness::~TestHarness() {
 
 bool TestHarness::ttyState() const {
   return tty_fd != -1;
+}
+
+int TestHarness::getVerbosity() const {
+  return verbosity;
+}
+
+int TestHarness::setVerbosity(int v) {
+  int temp = verbosity;
+  verbosity = v;
+  return temp;
 }
 
 void TestHarness::flushConsole() {
@@ -141,7 +151,9 @@ int TestHarness::sendProto(uint16_t type,
 }
 
 int TestHarness::getAhdlc(raw_message* msg, microseconds timeout) {
-  std::cout << "RX: ";
+  if (verbosity >= INFO) {
+    std::cout << "RX: ";
+  }
   size_t read_count = 0;
   while (true) {  //TODO? timeout
     uint8_t read_value;
@@ -150,8 +162,10 @@ int TestHarness::getAhdlc(raw_message* msg, microseconds timeout) {
       if(timeout >= microseconds(0) &&
          duration_cast<microseconds>(high_resolution_clock::now() - start) >
          microseconds(timeout)) {
-        std::cout <<"\n";
-        std::cout.flush();
+        if (verbosity >= INFO) {
+          std::cout << "\n";
+          std::cout.flush();
+        }
         return TIMEOUT;
       }
     }
@@ -160,19 +174,23 @@ int TestHarness::getAhdlc(raw_message* msg, microseconds timeout) {
     ahdlc_op_return return_value =
         DecodeFrameByte(&decoder, read_value);
 
-    if (read_value == '\n') {
-      std::cout << "\nRX: ";
-    } else {
-      print_bin(std::cout, read_value);
+    if (verbosity >= INFO) {
+      if (read_value == '\n') {
+        std::cout << "\nRX: ";
+      } else {
+        print_bin(std::cout, read_value);
+      }
+      std::cout.flush();
     }
-    std::cout.flush();
 
     if (read_count > 7) {
       if (return_value == AHDLC_COMPLETE || decoder.decoder_state == DECODE_COMPLETE_BAD_CRC) {
         if (decoder.frame_info.buffer_index < 2) {
-          std::cout <<"\n";
-          std::cout.flush();
-          std::cout << "UNDERFLOW ERROR\n";
+          if (verbosity >= ERROR) {
+            std::cout << "\n";
+            std::cout << "UNDERFLOW ERROR\n";
+            std::cout.flush();
+          }
           return TRANSPORT_ERROR;
         }
 
@@ -181,26 +199,33 @@ int TestHarness::getAhdlc(raw_message* msg, microseconds timeout) {
         std::copy(decoder.pdu_buffer + 2,
                   decoder.pdu_buffer + decoder.frame_info.buffer_index,
                   msg->data);
-        std::cout <<"\n";
-        if (return_value == AHDLC_COMPLETE) {
-          std::cout << "GOOD CRC\n";
-        } else {
-          std::cout << "BAD CRC\n";
+
+        if (verbosity >= INFO) {
+          std::cout << "\n";
+          if (return_value == AHDLC_COMPLETE) {
+            std::cout << "GOOD CRC\n";
+          } else {
+            std::cout << "BAD CRC\n";
+          }
+          std::cout.flush();
         }
-        std::cout.flush();
         return NO_ERROR;
       } else if (decoder.decoder_state == DECODE_COMPLETE_BAD_CRC) {
-        std::cout <<"\n";
-        std::cout << "AHDLC BAD CRC\n";
-        std::cout.flush();
+        if (verbosity >= ERROR) {
+          std::cout << "\n";
+          std::cout << "AHDLC BAD CRC\n";
+          std::cout.flush();
+        }
         return TRANSPORT_ERROR;
       } else if (decoder.frame_info.buffer_index >= PROTO_BUFFER_MAX_LEN) {
         if (AhdlcDecoderInit(&decoder, CRC16) != AHDLC_OK) {
           fatal_error("AhdlcDecoderInit()");
         }
-        std::cout <<"\n";
-        std::cout.flush();
-        std::cout << "OVERFLOW ERROR\n";
+        if (verbosity >= ERROR) {
+          std::cout << "\n";
+          std::cout.flush();
+          std::cout << "OVERFLOW ERROR\n";
+        }
         return OVERFLOW_ERROR;
       }
     }
@@ -208,8 +233,10 @@ int TestHarness::getAhdlc(raw_message* msg, microseconds timeout) {
 }
 
 void TestHarness::init(const char* path) {
-  std::cout << "init() start\n";
-  std::cout.flush();
+  if (verbosity >= INFO) {
+    std::cout << "init() start\n";
+    std::cout.flush();
+  }
 
   encoder.buffer_len = PROTO_BUFFER_MAX_LEN;
   encoder.frame_buffer = reinterpret_cast<uint8_t*>(malloc(encoder.buffer_len));
@@ -271,13 +298,17 @@ void TestHarness::init(const char* path) {
     fatal_error("");
   }
 
-  std::cout << "init() finish\n";
-  std::cout.flush();
+  if (verbosity >= INFO) {
+    std::cout << "init() finish\n";
+    std::cout.flush();
+  }
 }
 
 bool TestHarness::switchFromConsoleToProtoApi() {
-  std::cout << "switchFromConsoleToProtoApi() start\n";
-  std::cout.flush();
+  if (verbosity >= INFO) {
+    std::cout << "switchFromConsoleToProtoApi() start\n";
+    std::cout.flush();
+  }
 
   if (tty_fd == -1) { return false; }
 
@@ -296,15 +327,19 @@ bool TestHarness::switchFromConsoleToProtoApi() {
 
   readUntil(BYTE_TIME * 1024);
 
-  std::cout << "switchFromConsoleToProtoApi() finish\n";
-  std::cout.flush();
+  if (verbosity >= INFO) {
+    std::cout << "switchFromConsoleToProtoApi() finish\n";
+    std::cout.flush();
+  }
 
   return true;
 }
 
 bool TestHarness::switchFromProtoApiToConsole(raw_message* out_msg) {
-  std::cout << "switchFromProtoApiToConsole() start\n";
-  std::cout.flush();
+  if (verbosity >= INFO) {
+    std::cout << "switchFromProtoApiToConsole() start\n";
+    std::cout.flush();
+  }
 
   ControlRequest controlRequest;
   controlRequest.set_type(ControlRequestType::REVERT_TO_CONSOLE);
@@ -326,16 +361,23 @@ bool TestHarness::switchFromProtoApiToConsole(raw_message* out_msg) {
       msg.type == APImessageID::NOTICE) {
     Notice message;
     message.ParseFromArray((char *) msg.data, msg.data_len);
-    std::cout << message.DebugString() <<std::endl;
+    if (verbosity >= INFO) {
+      std::cout << message.DebugString() << std::endl;
+    }
   } else {
-    std::cout << "Receive Error" <<std::endl;
+    if (verbosity >= ERROR) {
+      std::cout << "Receive Error" << std::endl;
+      std::cout.flush();
+    }
     return false;
   }
 
   readUntil(BYTE_TIME * 4096);
 
-  std::cout << "switchFromProtoApiToConsole() finish\n";
-  std::cout.flush();
+  if (verbosity >= INFO) {
+    std::cout << "switchFromProtoApiToConsole() finish\n";
+    std::cout.flush();
+  }
   if (out_msg) {
     *out_msg = std::move(msg);
   }
@@ -343,23 +385,25 @@ bool TestHarness::switchFromProtoApiToConsole(raw_message* out_msg) {
 }
 
 void TestHarness::blockingWrite(const char* data, size_t len) {
-  std::cout << "TX: ";
-  for (size_t i = 0; i < len; ++i) {
-    uint8_t value = data[i];
-    if (value == '\n') {
-      std::cout << "\nTX: ";
-    } else {
-      print_bin(std::cout, value);
+  if (verbosity >= INFO) {
+    std::cout << "TX: ";
+    for (size_t i = 0; i < len; ++i) {
+      uint8_t value = data[i];
+      if (value == '\n') {
+        std::cout << "\nTX: ";
+      } else {
+        print_bin(std::cout, value);
+      }
     }
+    std::cout << "\n";
+    std::cout.flush();
   }
-  std::cout << "\n";
-  std::cout.flush();
 
   size_t loc = 0;
   while (loc < len) {
     errno = 0;
     int return_value = write(tty_fd, data + loc, len - loc);
-    if (errno != 0){
+    if (verbosity >= CRITICAL && errno != 0){
       perror("ERROR write()");
     }
     if (return_value < 0) {
@@ -388,7 +432,7 @@ string TestHarness::readLineUntilBlock() {
       print_bin(ss, read_value);
       line.append(1, read_value);
     }
-    if (errno != 0) {
+    if (verbosity >= CRITICAL && errno != 0) {
       perror("ERROR read()");
     }
 
@@ -404,7 +448,7 @@ string TestHarness::readLineUntilBlock() {
     std::this_thread::sleep_for(BIT_TIME);
   }
 
-  if (line.size() > 0) {
+  if (verbosity >= INFO && line.size() > 0) {
     std::cout << "RX: " << ss.str() <<"\n";
     std::cout.flush();
   }
@@ -422,26 +466,28 @@ string TestHarness::readUntil(microseconds end) {
     errno = 0;
     while (read(tty_fd, &read_value, 1) > 0) {
       ss << read_value;
-      if (first) {
-        first = false;
-        std::cout << "RX: ";
-        print_bin(std::cout, read_value);
-      } else if (read_value == '\n') {
-        std::cout << "\n";
-        std::cout.flush();
-        std::cout << "RX: ";
-      } else {
-        print_bin(std::cout, read_value);
+      if (verbosity >= INFO) {
+        if (first) {
+          first = false;
+          std::cout << "RX: ";
+          print_bin(std::cout, read_value);
+        } else if (read_value == '\n') {
+          std::cout << "\n";
+          std::cout.flush();
+          std::cout << "RX: ";
+        } else {
+          print_bin(std::cout, read_value);
+        }
       }
     }
-    if (errno != 0) {
+    if (verbosity >= CRITICAL && errno != 0) {
       perror("ERROR read()");
     }
 
     /* Wait for at least one bit time before checking read() again. */
     std::this_thread::sleep_for(BIT_TIME);
   }
-  if (!first) {
+  if (verbosity >= INFO && !first) {
     std::cout << "\n";
     std::cout.flush();
   }
