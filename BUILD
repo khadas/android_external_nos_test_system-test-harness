@@ -19,9 +19,9 @@ cc_binary(
         "@com_github_gflags_gflags//:gflags",
         "@com_googlesource_android_platform_external_regex_re2//:regex_re2",
         "@gtest//:gtest",
-        "@proto//:weaver_cc_proto",
-        "@proto//:weaver_client_proto",
-        "@tools//:nugget_driver",
+        "@nugget_test_systemtestharness_proto//:weaver_cc_proto",
+        "@nugget_test_systemtestharness_proto//:weaver_client_proto",
+        "@nugget_test_systemtestharness_tools//:nugget_driver",
     ],
 )
 
@@ -35,8 +35,8 @@ cc_library(
     ],
     copts = COPTS,
     deps = [
-        "@ahdlc//:ahdlc",
-        "@proto//:protoapi_control_cc_proto",
-        "@proto//:protoapi_testing_api_cc_proto",
+        "@nugget_test_systemtestharness_proto//:protoapi_control_cc_proto",
+        "@nugget_test_systemtestharness_proto//:protoapi_testing_api_cc_proto",
+        "@nugget_thirdparty_ahdlc//:ahdlc",
     ],
 )

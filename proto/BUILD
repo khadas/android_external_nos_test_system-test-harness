@@ -54,7 +54,7 @@ cc_library(
     deps = [
         "nugget_protobuf_options_cc_proto",
         "weaver_cc_proto",
-        "@tools//:nugget_driver",
+        "@nugget_test_systemtestharness_tools//:nugget_driver",
     ],
 )
 
@@ -62,7 +62,7 @@ cc_library(
 # proto genrules
 ################################################################################
 
-GEN_SERVICE = "$(location @com_google_protobuf//:protoc) --plugin=protoc-gen-nos-client-cpp=$(location @tools//:protoc_gen_nos_client_cpp)"
+GEN_SERVICE = "$(location @com_google_protobuf//:protoc) --plugin=protoc-gen-nos-client-cpp=$(location @nugget_test_systemtestharness_tools//:protoc_gen_nos_client_cpp)"
 
 genrule(
     name = "weaver_proto_client_cc_genrule",
@@ -77,7 +77,7 @@ genrule(
     cmd = GEN_SERVICE + " --proto_path=`dirname $(location weaver.proto)` --nos-client-cpp_out=source:`dirname $(location Weaver.client.cc)` $(location weaver.proto)",
     tools = [
         "@com_google_protobuf//:protoc",
-        "@tools//:protoc_gen_nos_client_cpp",
+        "@nugget_test_systemtestharness_tools//:protoc_gen_nos_client_cpp",
     ],
 )
 
@@ -94,7 +94,7 @@ genrule(
     cmd = GEN_SERVICE + " --proto_path=`dirname $(location weaver.proto)` --nos-client-cpp_out=header:`dirname $(location Weaver.client.h)` $(location weaver.proto)",
     tools = [
         "@com_google_protobuf//:protoc",
-        "@tools//:protoc_gen_nos_client_cpp",
+        "@nugget_test_systemtestharness_tools//:protoc_gen_nos_client_cpp",
     ],
 )
 

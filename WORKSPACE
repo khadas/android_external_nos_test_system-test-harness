@@ -1,3 +1,5 @@
+workspace(name = "nugget_test_systemtestharness")
+
 new_http_archive(
     name = "gtest",
     url = "https://github.com/google/googletest/archive/release-1.8.0.zip",
@@ -110,7 +112,7 @@ cc_library(
 )
 
 new_local_repository(
-    name = "libmpsse",
+    name = "nugget_thirdparty_libmpsse",
     path = "../../third_party/libmpsse/src",
     build_file_content = """
 cc_library(
@@ -151,7 +153,7 @@ cc_library(
 
 ## Use this when a subproject of repo.
 new_local_repository(
-    name = "ahdlc",
+    name = "nugget_thirdparty_ahdlc",
     path = "../../third_party/ahdlc",
     build_file_content = """
 cc_library(
@@ -171,21 +173,21 @@ cc_library(
 )
 
 local_repository(
-    name = "nugget",
+    name = "nugget_core_nugget",
     path = "../../core/nugget",
 )
 
 local_repository(
-    name = "host_generic",
+    name = "nugget_host_generic",
     path = "../../host/generic",
 )
 
 local_repository(
-    name = "proto",
+    name = "nugget_test_systemtestharness_proto",
     path = "proto",
 )
 
 local_repository(
-    name = "tools",
+    name = "nugget_test_systemtestharness_tools",
     path = "tools",
 )

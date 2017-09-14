@@ -7,7 +7,7 @@ cc_binary(
     deps = [
         ":nugget_driver",
         "@com_google_protobuf//:protoc_lib",
-        "@proto//:nugget_protobuf_options_cc_proto",
+        "@nugget_test_systemtestharness_proto//:nugget_protobuf_options_cc_proto",
     ],
 )
 
@@ -22,6 +22,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_gflags_gflags//:gflags",
-        "@nugget//:driver",
+        "@nugget_core_nugget//:driver",
     ],
 )
