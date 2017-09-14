@@ -1,17 +1,18 @@
 
 #include <chrono>
+#include <memory>
+#include <nos/LinuxCitadelClient.h>
 
 #include "gflags/gflags.h"
 #include "gtest/gtest.h"
-#include "nugget_driver.h"
+#include "nugget_tools.h"
 #include "re2/re2.h"
 #include "util.h"
 
 using std::cout;
 using std::string;
 using std::vector;
-
-using nugget_driver::buf;
+using std::unique_ptr;
 
 namespace {
 
@@ -19,43 +20,56 @@ class NuggetCoreTest: public testing::Test {
  protected:
   static void SetUpTestCase();
   static void TearDownTestCase();
+
+  static unique_ptr<nos::LinuxCitadelClient> citadelClient;
+  static vector<uint8_t> input_buffer;
+  static vector<uint8_t> output_buffer;
 };
 
+unique_ptr<nos::LinuxCitadelClient> NuggetCoreTest::citadelClient;
+
+vector<uint8_t> NuggetCoreTest::input_buffer;
+vector<uint8_t> NuggetCoreTest::output_buffer;
+
 void NuggetCoreTest::SetUpTestCase() {
-  EXPECT_TRUE(nugget_driver::OpenDevice()) << "Unable to connect";
+  citadelClient = std::make_unique<nos::LinuxCitadelClient>(
+      nugget_tools::getNosCoreFreq(), nugget_tools::getNosCoreSerial());
+  citadelClient->open();
+  input_buffer.reserve(0x4000);
+  output_buffer.reserve(0x4000);
+  EXPECT_TRUE(citadelClient->isOpen()) << "Unable to connect";
 }
 
 void NuggetCoreTest::TearDownTestCase() {
-  nugget_driver::CloseDevice();
+  citadelClient->close();
 }
 
 // ./test_app --id 0 -p 0 -a
 TEST_F(NuggetCoreTest, GetVersionStringTest) {
-  uint32_t replycount = nugget_driver::bufsize;
-  ASSERT_NO_ERROR(call_application(APP_ID_NUGGET, NUGGET_PARAM_VERSION,
-                                   (uint8_t*) buf, 0, (uint8_t*) buf,
-                                   &replycount));
-  ASSERT_GT(replycount, 0);
-  cout << string((char*) buf, replycount) <<"\n";
+  input_buffer.resize(0);
+  ASSERT_NO_ERROR(NuggetCoreTest::citadelClient->callApp(
+      APP_ID_NUGGET, NUGGET_PARAM_VERSION, input_buffer, output_buffer));
+  ASSERT_GT(output_buffer.size(), 0);
+  cout << string((char*) output_buffer.data(), output_buffer.size()) <<"\n";
   cout.flush();
 }
 
 // ./test_app --id 0 -p beef a b c d e f
 TEST_F(NuggetCoreTest, ReverseStringTest) {
   const char test_string[] = "a b c d e f";
-  ASSERT_LT(sizeof(test_string), nugget_driver::bufsize);
-  std::copy(test_string, test_string + sizeof(test_string), buf);
+  ASSERT_LT(sizeof(test_string), input_buffer.capacity());
+  input_buffer.resize(sizeof(test_string));
+  std::copy(test_string, test_string + sizeof(test_string),
+            input_buffer.begin());
 
-  uint32_t replycount = nugget_driver::bufsize;
-  ASSERT_NO_ERROR(call_application(APP_ID_NUGGET, NUGGET_PARAM_REVERSE,
-                                   (uint8_t*) buf, sizeof(test_string),
-                                   (uint8_t*) buf, &replycount));
+  ASSERT_NO_ERROR(NuggetCoreTest::citadelClient->callApp(
+      APP_ID_NUGGET, NUGGET_PARAM_REVERSE, input_buffer, output_buffer));
 
-  ASSERT_EQ(replycount, sizeof(test_string));
+  ASSERT_EQ(output_buffer.size(), sizeof(test_string));
 
   for (size_t x = 0; x < sizeof(test_string); ++x) {
     ASSERT_EQ(test_string[sizeof(test_string) - 1 - x],
-              buf[x]) << "Failure at index: " << x;
+              output_buffer[x]) << "Failure at index: " << x;
   }
 }
 
@@ -66,12 +80,11 @@ const auto REBOOT_DELAY = std::chrono::microseconds(2250000);
 TEST_F(NuggetCoreTest, SoftRebootTest) {
   test_harness::TestHarness harness;
 
-  buf[0] = 0;  // 0 = soft reboot, 1 = hard reboot
-  uint32_t replycount = nugget_driver::bufsize;
-  ASSERT_NO_ERROR(call_application(APP_ID_NUGGET, NUGGET_PARAM_REBOOT,
-                                   (uint8_t*) buf, 1, (uint8_t*) buf,
-                                   &replycount));
-  ASSERT_EQ(replycount, 0);
+  input_buffer.resize(1);
+  input_buffer[0] = 0;  // 0 = soft reboot, 1 = hard reboot
+  ASSERT_NO_ERROR(NuggetCoreTest::citadelClient->callApp(
+      APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer, output_buffer));
+  ASSERT_EQ(output_buffer.size(), 0);
 
   string result = harness.readUntil(1042 * test_harness::BYTE_TIME);
   ASSERT_TRUE(RE2::PartialMatch(result, reboot_message_matcher));
@@ -85,12 +98,11 @@ TEST_F(NuggetCoreTest, SoftRebootTest) {
 TEST_F(NuggetCoreTest, HardRebootTest) {
   test_harness::TestHarness harness;
 
-  buf[0] = 1;  // 0 = soft reboot, 1 = hard reboot
-  uint32_t replycount = nugget_driver::bufsize;
-  ASSERT_NO_ERROR(call_application(APP_ID_NUGGET, NUGGET_PARAM_REBOOT,
-                                   (uint8_t*) buf, 1, (uint8_t*) buf,
-                                   &replycount));
-  ASSERT_EQ(replycount, 0);
+  input_buffer.resize(1);
+  input_buffer[0] = 1;  // 0 = soft reboot, 1 = hard reboot
+  ASSERT_NO_ERROR(NuggetCoreTest::citadelClient->callApp(
+      APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer, output_buffer));
+  ASSERT_EQ(output_buffer.size(), 0);
 
   string result = harness.readUntil(1042 * test_harness::BYTE_TIME);
   ASSERT_TRUE(RE2::PartialMatch(result, reboot_message_matcher));

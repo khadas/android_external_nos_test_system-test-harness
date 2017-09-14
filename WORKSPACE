@@ -183,6 +183,21 @@ local_repository(
 )
 
 local_repository(
+    name = "nugget_host_generic_libnos",
+    path = "../../host/generic/libnos",
+)
+
+local_repository(
+    name = "nugget_host_generic_libnos_citadel",
+    path = "../../host/generic/libnos/citadel",
+)
+
+local_repository(
+    name = "nugget_host_generic_libnos_generator",
+    path = "../../host/generic/libnos/generator",
+)
+
+local_repository(
     name = "nugget_test_systemtestharness_proto",
     path = "proto",
 )

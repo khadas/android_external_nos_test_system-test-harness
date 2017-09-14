@@ -45,16 +45,19 @@ cc_proto_library(
 cc_library(
     name = "weaver_client_proto",
     srcs = [
-        "Weaver.client.cc",
+        "Weaver.client.cpp",
     ],
     hdrs = [
         "Weaver.client.h",
+    ],
+    includes = [
+        "./",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "nugget_protobuf_options_cc_proto",
         "weaver_cc_proto",
-        "@nugget_test_systemtestharness_tools//:nugget_driver",
+        "@nugget_host_generic_libnos_citadel//:libnos_citadel_linux",
     ],
 )
 
@@ -62,7 +65,7 @@ cc_library(
 # proto genrules
 ################################################################################
 
-GEN_SERVICE = "$(location @com_google_protobuf//:protoc) --plugin=protoc-gen-nos-client-cpp=$(location @nugget_test_systemtestharness_tools//:protoc_gen_nos_client_cpp)"
+GEN_SERVICE = "$(location @com_google_protobuf//:protoc) --plugin=protoc-gen-nos-client-cpp=$(location @nugget_host_generic_libnos_generator//:protoc_gen_nos_client_cpp)"
 
 genrule(
     name = "weaver_proto_client_cc_genrule",
@@ -72,12 +75,12 @@ genrule(
         "google/protobuf/descriptor.proto",
     ],
     outs = [
-        "Weaver.client.cc",
+        "Weaver.client.cpp",
     ],
-    cmd = GEN_SERVICE + " --proto_path=`dirname $(location weaver.proto)` --nos-client-cpp_out=source:`dirname $(location Weaver.client.cc)` $(location weaver.proto)",
+    cmd = GEN_SERVICE + " --proto_path=`dirname $(location weaver.proto)` --nos-client-cpp_out=source:`dirname $(location Weaver.client.cpp)` $(location weaver.proto)",
     tools = [
         "@com_google_protobuf//:protoc",
-        "@nugget_test_systemtestharness_tools//:protoc_gen_nos_client_cpp",
+        "@nugget_host_generic_libnos_generator//:protoc_gen_nos_client_cpp",
     ],
 )
 
@@ -94,7 +97,7 @@ genrule(
     cmd = GEN_SERVICE + " --proto_path=`dirname $(location weaver.proto)` --nos-client-cpp_out=header:`dirname $(location Weaver.client.h)` $(location weaver.proto)",
     tools = [
         "@com_google_protobuf//:protoc",
-        "@nugget_test_systemtestharness_tools//:protoc_gen_nos_client_cpp",
+        "@nugget_host_generic_libnos_generator//:protoc_gen_nos_client_cpp",
     ],
 )
 
