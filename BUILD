@@ -25,6 +25,25 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "cavptests",
+    srcs = [
+        "src/gtest_with_gflags_main.cc",
+        "src/cavptests.cc",
+        "src/test-data/NIST-CAVP/aes-gcm-cavp.h",
+    ],
+    copts = COPTS,
+    includes = [
+        "src/test-data/NIST-CAVP",
+    ],
+    deps = [
+        ":util",
+        "@com_github_gflags_gflags//:gflags",
+        "@gtest//:gtest",
+        "@nugget_test_systemtestharness_tools//:nugget_driver",
+    ],
+)
+
 cc_library(
     name = "util",
     srcs = [
