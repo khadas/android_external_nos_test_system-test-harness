@@ -43,8 +43,9 @@ uint32_t WeaverTest::slot = WeaverTest::random_number_generator() & 0x3f;
 unique_ptr<nos::LinuxCitadelClient> WeaverTest::citadelClient;
 
 void WeaverTest::SetUpTestCase() {
-  citadelClient = std::make_unique<nos::LinuxCitadelClient>(
-      nugget_tools::getNosCoreFreq(), nugget_tools::getNosCoreSerial());
+  citadelClient =
+      unique_ptr<nos::LinuxCitadelClient>(new nos::LinuxCitadelClient(
+          nugget_tools::getNosCoreFreq(), nugget_tools::getNosCoreSerial()));
   citadelClient->open();
   EXPECT_TRUE(citadelClient->isOpen()) << "Unable to connect";
 }

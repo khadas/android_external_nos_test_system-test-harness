@@ -32,8 +32,9 @@ vector<uint8_t> NuggetCoreTest::input_buffer;
 vector<uint8_t> NuggetCoreTest::output_buffer;
 
 void NuggetCoreTest::SetUpTestCase() {
-  citadelClient = std::make_unique<nos::LinuxCitadelClient>(
-      nugget_tools::getNosCoreFreq(), nugget_tools::getNosCoreSerial());
+  citadelClient =
+      unique_ptr<nos::LinuxCitadelClient>(new nos::LinuxCitadelClient(
+          nugget_tools::getNosCoreFreq(), nugget_tools::getNosCoreSerial()));
   citadelClient->open();
   input_buffer.reserve(0x4000);
   output_buffer.reserve(0x4000);

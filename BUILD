@@ -1,5 +1,5 @@
 COPTS = [
-    "-std=c++1y",  # c++14 support on older GCC compilers
+    "-std=c++11",
     "-g",
     "-Wall",
     "-Wextra",
@@ -30,8 +30,8 @@ cc_binary(
 cc_binary(
     name = "cavptests",
     srcs = [
-        "src/gtest_with_gflags_main.cc",
         "src/cavptests.cc",
+        "src/gtest_with_gflags_main.cc",
         "src/test-data/NIST-CAVP/aes-gcm-cavp.h",
     ],
     copts = COPTS,
