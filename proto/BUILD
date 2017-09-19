@@ -61,6 +61,33 @@ cc_library(
     ],
 )
 
+cc_proto_library(
+    name = "keymaster_cc_proto",
+    visibility = ["//visibility:public"],
+    deps = [
+        "keymaster_proto",
+    ],
+)
+
+cc_library(
+    name = "keymaster_client_proto",
+    srcs = [
+        "Keymaster.client.cpp",
+    ],
+    hdrs = [
+        "Keymaster.client.h",
+    ],
+    includes = [
+        "./",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "nugget_protobuf_options_cc_proto",
+        "keymaster_cc_proto",
+        "@nugget_host_generic_libnos_citadel//:libnos_citadel_linux",
+    ],
+)
+
 ################################################################################
 # proto genrules
 ################################################################################
@@ -95,6 +122,40 @@ genrule(
         "Weaver.client.h",
     ],
     cmd = GEN_SERVICE + " --proto_path=`dirname $(location weaver.proto)` --nos-client-cpp_out=header:`dirname $(location Weaver.client.h)` $(location weaver.proto)",
+    tools = [
+        "@com_google_protobuf//:protoc",
+        "@nugget_host_generic_libnos_generator//:protoc_gen_nos_client_cpp",
+    ],
+)
+
+genrule(
+    name = "keymaster_proto_client_cc_genrule",
+    srcs = [
+        "keymaster.proto",
+        "nugget/protobuf/options.proto",
+        "google/protobuf/descriptor.proto",
+    ],
+    outs = [
+        "Keymaster.client.cpp",
+    ],
+    cmd = GEN_SERVICE + " --proto_path=`dirname $(location keymaster.proto)` --nos-client-cpp_out=source:`dirname $(location Keymaster.client.cpp)` $(location keymaster.proto)",
+    tools = [
+        "@com_google_protobuf//:protoc",
+        "@nugget_host_generic_libnos_generator//:protoc_gen_nos_client_cpp",
+    ],
+)
+
+genrule(
+    name = "keymaster_proto_client_h_genrule",
+    srcs = [
+        "keymaster.proto",
+        "nugget/protobuf/options.proto",
+        "google/protobuf/descriptor.proto",
+    ],
+    outs = [
+        "Keymaster.client.h",
+    ],
+    cmd = GEN_SERVICE + " --proto_path=`dirname $(location keymaster.proto)` --nos-client-cpp_out=header:`dirname $(location Keymaster.client.h)` $(location keymaster.proto)",
     tools = [
         "@com_google_protobuf//:protoc",
         "@nugget_host_generic_libnos_generator//:protoc_gen_nos_client_cpp",
@@ -171,6 +232,16 @@ proto_library(
     name = "weaver_proto",
     srcs = [
         "weaver.proto",
+    ],
+    deps = [
+        "nugget_protobuf_options_proto",
+    ],
+)
+
+proto_library(
+    name = "keymaster_proto",
+    srcs = [
+        "keymaster.proto",
     ],
     deps = [
         "nugget_protobuf_options_proto",

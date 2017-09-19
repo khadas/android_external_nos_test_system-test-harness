@@ -12,6 +12,7 @@ cc_binary(
         "src/nugget_core_tests.cc",
         "src/runtests.cc",
         "src/weaver_tests.cc",
+        "src/keymaster_tests.cc",
     ],
     copts = COPTS,
     deps = [
@@ -23,6 +24,8 @@ cc_binary(
         "@nugget_host_generic_libnos_citadel//:libnos_citadel_linux",
         "@nugget_test_systemtestharness_proto//:weaver_cc_proto",
         "@nugget_test_systemtestharness_proto//:weaver_client_proto",
+        "@nugget_test_systemtestharness_proto//:keymaster_cc_proto",
+        "@nugget_test_systemtestharness_proto//:keymaster_client_proto",
         "@nugget_test_systemtestharness_tools//:nugget_tools",
     ],
 )
