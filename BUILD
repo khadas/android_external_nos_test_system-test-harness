@@ -42,7 +42,7 @@ cc_binary(
         ":util",
         "@com_github_gflags_gflags//:gflags",
         "@gtest//:gtest",
-        "@nugget_test_systemtestharness_tools//:nugget_driver",
+        "@nugget_host_generic_libnos_citadel//:libnos_citadel_linux",
     ],
 )
 
