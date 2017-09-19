@@ -52,6 +52,7 @@ void WeaverTest::SetUpTestCase() {
 
 void WeaverTest::TearDownTestCase() {
   citadelClient->close();
+  citadelClient = unique_ptr<nos::LinuxCitadelClient>();
 }
 
 void WeaverTest::testWrite(uint32_t slot, const uint8_t *key,

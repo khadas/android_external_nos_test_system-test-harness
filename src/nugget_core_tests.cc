@@ -43,6 +43,7 @@ void NuggetCoreTest::SetUpTestCase() {
 
 void NuggetCoreTest::TearDownTestCase() {
   citadelClient->close();
+  citadelClient = unique_ptr<nos::LinuxCitadelClient>();
 }
 
 // ./test_app --id 0 -p 0 -a
@@ -89,14 +90,16 @@ TEST_F(NuggetCoreTest, SoftRebootTest) {
 
   string result = harness.readUntil(1042 * test_harness::BYTE_TIME);
   ASSERT_TRUE(RE2::PartialMatch(result, reboot_message_matcher));
-  NuggetCoreTest::TearDownTestCase();
-  NuggetCoreTest::SetUpTestCase();
+  NuggetCoreTest::citadelClient->close();
   result = harness.readUntil(REBOOT_DELAY);
+  NuggetCoreTest::citadelClient->open();
+  ASSERT_TRUE(NuggetCoreTest::citadelClient->isOpen());
   ASSERT_TRUE(RE2::PartialMatch(
       result, "\\[Reset cause: hibernate rtc-alarm\\]"));
 }
 
-TEST_F(NuggetCoreTest, HardRebootTest) {
+// TODO(b/65930573) enable this test after it no longer breaks libnos.
+TEST_F(NuggetCoreTest, DISABLED_HardRebootTest) {
   test_harness::TestHarness harness;
 
   input_buffer.resize(1);
@@ -107,9 +110,10 @@ TEST_F(NuggetCoreTest, HardRebootTest) {
 
   string result = harness.readUntil(1042 * test_harness::BYTE_TIME);
   ASSERT_TRUE(RE2::PartialMatch(result, reboot_message_matcher));
-  NuggetCoreTest::TearDownTestCase();
-  NuggetCoreTest::SetUpTestCase();
+  NuggetCoreTest::citadelClient->close();
   result = harness.readUntil(REBOOT_DELAY);
+  NuggetCoreTest::citadelClient->open();
+  ASSERT_TRUE(NuggetCoreTest::citadelClient->isOpen());
   ASSERT_TRUE(RE2::PartialMatch(result, "\\[Reset cause: ap-off\\]"));
 }
 
