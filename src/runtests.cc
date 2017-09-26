@@ -72,27 +72,29 @@ void NuggetOsTest::SetUpTestCase() {
   harness = unique_ptr<test_harness::TestHarness>(
       new test_harness::TestHarness());
 
-  EXPECT_TRUE(harness->switchFromConsoleToProtoApi());
-  EXPECT_TRUE(harness->ttyState());
+  if (!harness->UsingSpi()) {
+    EXPECT_TRUE(harness->SwitchFromConsoleToProtoApi());
+    EXPECT_TRUE(harness->ttyState());
+  }
 }
 
 void NuggetOsTest::TearDownTestCase() {
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
-  EXPECT_TRUE(harness->switchFromProtoApiToConsole(NULL));
+  if (!harness->UsingSpi()) {
+    harness->ReadUntil(test_harness::BYTE_TIME * 1024);
+    EXPECT_TRUE(harness->SwitchFromProtoApiToConsole(NULL));
+  }
   harness = unique_ptr<test_harness::TestHarness>();
 }
 
 TEST_F(NuggetOsTest, NoticePing) {
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
-
   Notice ping_msg;
   ping_msg.set_notice_code(NoticeCode::PING);
   Notice pong_msg;
 
-  ASSERT_NO_ERROR(harness->sendProto(APImessageID::NOTICE, ping_msg));
+  ASSERT_NO_ERROR(harness->SendProto(APImessageID::NOTICE, ping_msg));
   cout << ping_msg.DebugString();
   test_harness::raw_message receive_msg;
-  ASSERT_NO_ERROR(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME));
+  ASSERT_NO_ERROR(harness->GetData(&receive_msg, 4096 * BYTE_TIME));
   ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
   ASSERT_TRUE(pong_msg.ParseFromArray(
@@ -100,9 +102,9 @@ TEST_F(NuggetOsTest, NoticePing) {
   cout << pong_msg.DebugString() <<std::endl;
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 
-  ASSERT_NO_ERROR(harness->sendProto(APImessageID::NOTICE, ping_msg));
+  ASSERT_NO_ERROR(harness->SendProto(APImessageID::NOTICE, ping_msg));
   cout << ping_msg.DebugString();
-  ASSERT_NO_ERROR(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME));
+  ASSERT_NO_ERROR(harness->GetData(&receive_msg, 4096 * BYTE_TIME));
   ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
   ASSERT_TRUE(pong_msg.ParseFromArray(
@@ -110,10 +112,9 @@ TEST_F(NuggetOsTest, NoticePing) {
   cout << pong_msg.DebugString() <<std::endl;
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 
-  ASSERT_NO_ERROR(harness->sendProto(APImessageID::NOTICE, ping_msg));
+  ASSERT_NO_ERROR(harness->SendProto(APImessageID::NOTICE, ping_msg));
   cout << ping_msg.DebugString();
-  ASSERT_NO_ERROR(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME));
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
+  ASSERT_NO_ERROR(harness->GetData(&receive_msg, 4096 * BYTE_TIME));
   ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
   ASSERT_TRUE(pong_msg.ParseFromArray(
@@ -123,8 +124,6 @@ TEST_F(NuggetOsTest, NoticePing) {
 }
 
 TEST_F(NuggetOsTest, InvalidMessageType) {
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
-
   const char content[] = "This is a test message.";
 
   test_harness::raw_message msg;
@@ -132,9 +131,8 @@ TEST_F(NuggetOsTest, InvalidMessageType) {
   std::copy(content, content + sizeof(content), msg.data);
   msg.data_len = sizeof(content);
 
-  ASSERT_NO_ERROR(harness->sendAhdlc(msg));
-  ASSERT_NO_ERROR(harness->getAhdlc(&msg, 4096 * BYTE_TIME));
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
+  ASSERT_NO_ERROR(harness->SendData(msg));
+  ASSERT_NO_ERROR(harness->GetData(&msg, 4096 * BYTE_TIME));
   ASSERT_MSG_TYPE(msg, APImessageID::NOTICE);
 
   Notice notice_msg;
@@ -145,8 +143,6 @@ TEST_F(NuggetOsTest, InvalidMessageType) {
 }
 
 TEST_F(NuggetOsTest, Sequence) {
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
-
   test_harness::raw_message msg;
   msg.type = APImessageID::SEND_SEQUENCE;
   msg.data_len = 256;
@@ -154,9 +150,8 @@ TEST_F(NuggetOsTest, Sequence) {
     msg.data[x] = x;
   }
 
-  ASSERT_NO_ERROR(harness->sendAhdlc(msg));
-  ASSERT_NO_ERROR(harness->getAhdlc(&msg, 4096 * BYTE_TIME));
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
+  ASSERT_NO_ERROR(harness->SendData(msg));
+  ASSERT_NO_ERROR(harness->GetData(&msg, 4096 * BYTE_TIME));
   ASSERT_MSG_TYPE(msg, APImessageID::SEND_SEQUENCE);
   for (size_t x = 0; x < msg.data_len; ++x) {
     ASSERT_EQ(msg.data[x], x) << "Inconsistency at index " << x;
@@ -164,8 +159,6 @@ TEST_F(NuggetOsTest, Sequence) {
 }
 
 TEST_F(NuggetOsTest, Echo) {
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
-
   test_harness::raw_message msg;
   msg.type = APImessageID::ECHO_THIS;
   // Leave some room for bytes which need escaping
@@ -174,10 +167,10 @@ TEST_F(NuggetOsTest, Echo) {
     msg.data[x] = random_number_generator();
   }
 
-  ASSERT_NO_ERROR(harness->sendAhdlc(msg));
+  ASSERT_NO_ERROR(harness->SendData(msg));
 
   test_harness::raw_message receive_msg;
-  ASSERT_NO_ERROR(harness->getAhdlc(&receive_msg, 4096 * BYTE_TIME));
+  ASSERT_NO_ERROR(harness->GetData(&receive_msg, 4096 * BYTE_TIME));
   ASSERT_MSG_TYPE(msg, APImessageID::ECHO_THIS);
   ASSERT_EQ(receive_msg.data_len, msg.data_len);
 
@@ -185,12 +178,9 @@ TEST_F(NuggetOsTest, Echo) {
     ASSERT_EQ(msg.data[x], receive_msg.data[x])
         << "Inconsistency at index " << x;
   }
-
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
 }
 
 TEST_F(NuggetOsTest, AesCbc) {
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
   const size_t number_of_blocks = 3;
 
   for (auto key_size : {KeySize::s128b, KeySize::s192b, KeySize::s256b}) {
@@ -215,13 +205,13 @@ TEST_F(NuggetOsTest, AesCbc) {
       outfile.close();
     }
 
-    ASSERT_NO_ERROR(harness->sendOneofProto(
+    ASSERT_NO_ERROR(harness->SendOneofProto(
         APImessageID::TESTING_API_CALL,
         OneofTestParametersCase::kAesCbcEncryptTest,
         request));
 
     test_harness::raw_message msg;
-    ASSERT_NO_ERROR(harness->getAhdlc(&msg, 4096 * BYTE_TIME));
+    ASSERT_NO_ERROR(harness->GetData(&msg, 4096 * BYTE_TIME));
     ASSERT_MSG_TYPE(msg, APImessageID::TESTING_API_RESPONSE);
     ASSERT_SUBTYPE(msg, OneofTestResultsCase::kAesCbcEncryptTestResult);
 
@@ -259,13 +249,9 @@ TEST_F(NuggetOsTest, AesCbc) {
                 << "Inconsistency at index " << x;
     }
   }
-
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
 }
 
 TEST_F(NuggetOsTest, Trng) {
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
-
   // Have a bin for every possible byte value.
   std::vector<size_t> counts(256, 0);
 
@@ -279,12 +265,12 @@ TEST_F(NuggetOsTest, Trng) {
 
   int verbosity = harness->getVerbosity();
   for (size_t x = 0; x < repeats; ++x) {
-    ASSERT_NO_ERROR(harness->sendOneofProto(
+    ASSERT_NO_ERROR(harness->SendOneofProto(
         APImessageID::TESTING_API_CALL,
         OneofTestParametersCase::kTrngTest,
         request));
     test_harness::raw_message msg;
-    ASSERT_NO_ERROR(harness->getAhdlc(&msg, 4096 * BYTE_TIME));
+    ASSERT_NO_ERROR(harness->GetData(&msg, 4096 * BYTE_TIME));
     ASSERT_MSG_TYPE(msg, APImessageID::TESTING_API_RESPONSE);
     ASSERT_SUBTYPE(msg, OneofTestResultsCase::kTrngTestResult);
 
@@ -313,8 +299,6 @@ TEST_F(NuggetOsTest, Trng) {
   cout << "K.L. Divergence: " << kl_divergence <<"\n";
   cout.flush();
   ASSERT_LT(kl_divergence, 15.0);
-
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
 }
 
 }  // namespace

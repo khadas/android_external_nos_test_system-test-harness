@@ -65,13 +65,17 @@ void NuggetOsTest::SetUpTestCase() {
   harness = unique_ptr<test_harness::TestHarness>(
       new test_harness::TestHarness());
 
-  EXPECT_TRUE(harness->switchFromConsoleToProtoApi());
-  EXPECT_TRUE(harness->ttyState());
+  if (!harness->UsingSpi()) {
+    EXPECT_TRUE(harness->SwitchFromConsoleToProtoApi());
+    EXPECT_TRUE(harness->ttyState());
+  }
 }
 
 void NuggetOsTest::TearDownTestCase() {
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
-  EXPECT_TRUE(harness->switchFromProtoApiToConsole(NULL));
+  harness->ReadUntil(test_harness::BYTE_TIME * 1024);
+  if (!harness->UsingSpi()) {
+    EXPECT_TRUE(harness->SwitchFromProtoApiToConsole(NULL));
+  }
   harness = unique_ptr<test_harness::TestHarness>();
 }
 
@@ -83,7 +87,7 @@ void NuggetOsTest::TearDownTestCase() {
 TEST_F(NuggetOsTest, AesGcm) {
   const int verbosity = harness->getVerbosity();
   harness->setVerbosity(verbosity - 1);
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
+  harness->ReadUntil(test_harness::BYTE_TIME * 1024);
 
   for (size_t i = 0; i < ARRAYSIZE(NIST_GCM_DATA); i++) {
     const gcm_data *test_case = &NIST_GCM_DATA[i];
@@ -103,13 +107,13 @@ TEST_F(NuggetOsTest, AesGcm) {
       outfile.close();
     }
 
-    ASSERT_NO_ERROR(harness->sendOneofProto(
+    ASSERT_NO_ERROR(harness->SendOneofProto(
         APImessageID::TESTING_API_CALL,
         OneofTestParametersCase::kAesGcmEncryptTest,
         request));
 
     test_harness::raw_message msg;
-    ASSERT_NO_ERROR(harness->getAhdlc(&msg, 4096 * BYTE_TIME));
+    ASSERT_NO_ERROR(harness->GetData(&msg, 4096 * BYTE_TIME));
     ASSERT_MSG_TYPE(msg, APImessageID::TESTING_API_RESPONSE);
     ASSERT_SUBTYPE(msg, OneofTestResultsCase::kAesGcmEncryptTestResult);
 
@@ -147,7 +151,7 @@ TEST_F(NuggetOsTest, AesGcm) {
     }
   }
 
-  harness->readUntil(test_harness::BYTE_TIME * 1024);
+  harness->ReadUntil(test_harness::BYTE_TIME * 1024);
   harness->setVerbosity(verbosity);
 }
 

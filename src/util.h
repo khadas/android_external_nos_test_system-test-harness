@@ -5,14 +5,18 @@
 
 #include <chrono>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include <google/protobuf/message.h>
 
 #include "src/lib/inc/frame_layer.h"
 #include "src/lib/inc/frame_layer_types.h"
+#include "nugget_tools.h"
 
 using std::string;
+using std::vector;
+using std::unique_ptr;
 
 namespace test_harness {
 
@@ -69,40 +73,53 @@ class TestHarness {
   /** Reads from tty until it would block. */
   void flushConsole();
   /** Reads from tty until the specified duration has passed. */
-  string readUntil(std::chrono::microseconds end);
+  string ReadUntil(std::chrono::microseconds end);
 
-  int sendAhdlc(const raw_message &msg);
-  int sendOneofProto(uint16_t type, uint16_t subtype,
-                     const google::protobuf::Message &message);
-  int sendProto(uint16_t type, const google::protobuf::Message &message);
+  int SendData(const raw_message& msg);
+  int SendOneofProto(uint16_t type, uint16_t subtype,
+                     const google::protobuf::Message& message);
+  int SendProto(uint16_t type, const google::protobuf::Message& message);
 
-  int getAhdlc(raw_message* msg, std::chrono::microseconds timeout);
+  int GetData(raw_message* msg, std::chrono::microseconds timeout);
 
-  bool switchFromConsoleToProtoApi();
+  bool UsingSpi() const;
 
-  bool switchFromProtoApiToConsole(raw_message* out_msg);
+  bool SwitchFromConsoleToProtoApi();
+
+  bool SwitchFromProtoApiToConsole(raw_message* out_msg);
 
  protected:
   int verbosity;
-  int tty_fd;
-  struct termios tty_state;
-  ahdlc_frame_encoder_t encoder;
-  ahdlc_frame_decoder_t decoder;
+  vector<uint8_t> output_buffer;
+  vector<uint8_t> input_buffer;
 
-  void init(const char* path);
+  void Init(const char* path);
 
   /** Writes @len bytes from @data until complete. */
-  void blockingWrite(const char* data, size_t len);
+  void BlockingWrite(const char* data, size_t len);
 
   /** Reads raw bytes from the tty until either an end of line is reached or
    * the input would block.
    *
    * @return a single line with the '\n' character unless the last read() would
    * have blocked.*/
-  string readLineUntilBlock();
+  string ReadLineUntilBlock();
+
+  // Needed for AHDLC / UART.
+  int tty_fd;
+  struct termios tty_state;
+  ahdlc_frame_encoder_t encoder;
+  ahdlc_frame_decoder_t decoder;
+  int SendAhdlc(const raw_message& msg);
+  int GetAhdlc(raw_message* msg, std::chrono::microseconds timeout);
+
+  // Needed for libnos / SPI.
+  unique_ptr<nos::linux::CitadelClient> citadelClient;
+  int SendSpi(const raw_message& msg);
+  int GetSpi(raw_message* msg, std::chrono::microseconds timeout);
 };
 
-void fatal_error(const string& msg);
+void FatalError(const string& msg);
 
 }  // namespace test_harness
 

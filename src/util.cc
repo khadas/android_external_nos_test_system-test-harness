@@ -2,6 +2,7 @@
 
 #include <dirent.h>
 #include <fcntl.h>
+#include "gflags/gflags.h"
 #include <unistd.h>
 
 #include <algorithm>
@@ -9,6 +10,7 @@
 #include <sstream>
 #include <thread>
 
+#include "nugget_tools.h"
 #include "protoapi/control.pb.h"
 #include "protoapi/header.pb.h"
 #include "src/lib/inc/crc_16.h"
@@ -20,6 +22,8 @@ using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 using std::chrono::microseconds;
+
+DEFINE_bool(util_use_ahdlc, false, "Use aHDLC over UART instead of SPI.");
 
 namespace test_harness {
 
@@ -48,20 +52,33 @@ string find_uart(){
   return return_value;
 }
 
-TestHarness::TestHarness() : verbosity(INFO) {
+TestHarness::TestHarness() : verbosity(INFO),
+                             output_buffer(PROTO_BUFFER_MAX_LEN, 0),
+                             input_buffer(PROTO_BUFFER_MAX_LEN, 0), tty_fd(-1) {
+#ifdef CONFIG_NO_UART
+  init(nullptr);
+#else
   string path = find_uart();
-  init(path.c_str());
+  Init(path.c_str());
+#endif  // CONFIG_NO_UART
 }
 
-TestHarness::TestHarness(const char* path) : verbosity(INFO) {
-  init(path);
+TestHarness::TestHarness(const char* path) :
+    verbosity(INFO), output_buffer(PROTO_BUFFER_MAX_LEN, 0),
+    input_buffer(PROTO_BUFFER_MAX_LEN, 0), tty_fd(-1) {
+  Init(path);
 }
 
 TestHarness::~TestHarness() {
-  free(encoder.frame_buffer);
-  free(decoder.pdu_buffer);
   std::cout << "CLOSING TEST HARNESS" << std::endl;
-  close(tty_fd);
+  if (FLAGS_util_use_ahdlc) {
+    close(tty_fd);
+  } else {
+    if (citadelClient) {
+      citadelClient->Close();
+      citadelClient = unique_ptr<nos::linux::CitadelClient >();
+    }
+  }
 }
 
 bool TestHarness::ttyState() const {
@@ -79,7 +96,9 @@ int TestHarness::setVerbosity(int v) {
 }
 
 void TestHarness::flushConsole() {
-  while (readLineUntilBlock().size() > 0) {}
+#ifndef CONFIG_NO_UART
+  while (ReadLineUntilBlock().size() > 0) {}
+#endif  // CONFIG_NO_UART
 }
 
 void print_bin(std::ostream &out, uint8_t c) {
@@ -94,7 +113,11 @@ void print_bin(std::ostream &out, uint8_t c) {
   }
 }
 
-int TestHarness::sendAhdlc(const raw_message &msg) {
+int TestHarness::SendData(const raw_message& msg) {
+  return FLAGS_util_use_ahdlc ? SendAhdlc(msg) : SendSpi(msg);
+}
+
+int TestHarness::SendAhdlc(const raw_message& msg) {
   if (EncodeNewFrame(&encoder) != AHDLC_OK) {
     return TRANSPORT_ERROR;
   }
@@ -108,13 +131,46 @@ int TestHarness::sendAhdlc(const raw_message &msg) {
     return TRANSPORT_ERROR;
   }
 
-  blockingWrite((const char*) encoder.frame_buffer,
+  BlockingWrite((const char*) encoder.frame_buffer,
                 encoder.frame_info.buffer_index);
   return NO_ERROR;
 }
 
-int TestHarness::sendOneofProto(uint16_t type, uint16_t subtype,
-                                const google::protobuf::Message &message) {
+int TestHarness::SendSpi(const raw_message& msg) {
+  if (!citadelClient) {
+    citadelClient =
+        unique_ptr<nos::linux::CitadelClient>(new nos::linux::CitadelClient(
+            nugget_tools::getNosCoreFreq(), nugget_tools::getNosCoreSerial()));
+    citadelClient->Open();
+    if(!citadelClient->IsOpen()) {
+      FatalError("Unable to connect");
+    }
+  }
+  input_buffer.resize(msg.data_len + sizeof(msg.type));
+  input_buffer[0] = msg.type >> 8;
+  input_buffer[1] = (uint8_t) msg.type;
+  std::copy(msg.data, msg.data + msg.data_len, input_buffer.begin() + 2);
+
+  if (verbosity >= INFO) {
+    std::cout << "SPI_TX: ";
+    for (char c : input_buffer) {
+      if (c == '\n') {
+        std::cout << "\nSPI_TX: ";
+      } else {
+        print_bin(std::cout, c);
+      }
+    }
+    std::cout << "\n";
+    std::cout.flush();
+  }
+
+  output_buffer.resize(output_buffer.capacity());
+  return citadelClient->CallApp(APP_ID_PROTOBUF, msg.type, input_buffer,
+                                &output_buffer);
+}
+
+int TestHarness::SendOneofProto(uint16_t type, uint16_t subtype,
+                                const google::protobuf::Message& message) {
   test_harness::raw_message msg;
   msg.type = type;
   int msg_size = message.ByteSize();
@@ -129,12 +185,12 @@ int TestHarness::sendOneofProto(uint16_t type, uint16_t subtype,
     return SERIALIZE_ERROR;
   }
 
-  auto return_value = sendAhdlc(msg);
+  auto return_value = SendData(msg);
   return return_value;
 }
 
-int TestHarness::sendProto(uint16_t type,
-                           const google::protobuf::Message &message) {
+int TestHarness::SendProto(uint16_t type,
+                           const google::protobuf::Message& message) {
   test_harness::raw_message msg;
   msg.type = type;
   int msg_size = message.ByteSize();
@@ -146,20 +202,20 @@ int TestHarness::sendProto(uint16_t type,
     return SERIALIZE_ERROR;
   }
 
-  auto return_value = sendAhdlc(msg);
+  auto return_value = SendData(msg);
   return return_value;
 }
 
-int TestHarness::getAhdlc(raw_message* msg, microseconds timeout) {
+int TestHarness::GetAhdlc(raw_message* msg, microseconds timeout) {
   if (verbosity >= INFO) {
     std::cout << "RX: ";
   }
   size_t read_count = 0;
-  while (true) {  //TODO? timeout
+  while (true) {
     uint8_t read_value;
     auto start = high_resolution_clock::now();
     while (read(tty_fd, &read_value, 1) <= 0) {
-      if(timeout >= microseconds(0) &&
+      if (timeout >= microseconds(0) &&
          duration_cast<microseconds>(high_resolution_clock::now() - start) >
          microseconds(timeout)) {
         if (verbosity >= INFO) {
@@ -184,7 +240,8 @@ int TestHarness::getAhdlc(raw_message* msg, microseconds timeout) {
     }
 
     if (read_count > 7) {
-      if (return_value == AHDLC_COMPLETE || decoder.decoder_state == DECODE_COMPLETE_BAD_CRC) {
+      if (return_value == AHDLC_COMPLETE ||
+          decoder.decoder_state == DECODE_COMPLETE_BAD_CRC) {
         if (decoder.frame_info.buffer_index < 2) {
           if (verbosity >= ERROR) {
             std::cout << "\n";
@@ -219,7 +276,7 @@ int TestHarness::getAhdlc(raw_message* msg, microseconds timeout) {
         return TRANSPORT_ERROR;
       } else if (decoder.frame_info.buffer_index >= PROTO_BUFFER_MAX_LEN) {
         if (AhdlcDecoderInit(&decoder, CRC16) != AHDLC_OK) {
-          fatal_error("AhdlcDecoderInit()");
+          FatalError("AhdlcDecoderInit()");
         }
         if (verbosity >= ERROR) {
           std::cout << "\n";
@@ -232,71 +289,98 @@ int TestHarness::getAhdlc(raw_message* msg, microseconds timeout) {
   }
 }
 
-void TestHarness::init(const char* path) {
+int TestHarness::GetSpi(raw_message* msg, microseconds timeout) {
+  if (output_buffer.size() < 2) {
+    return GENERIC_ERROR;
+  }
+
+  if (verbosity >= INFO) {
+    std::cout << "SPI_RX: ";
+    for (char c : output_buffer) {
+      if (c == '\n') {
+        std::cout << "\nSPI_RX: ";
+      } else {
+        print_bin(std::cout, c);
+      }
+    }
+    std::cout << "\n";
+    std::cout.flush();
+  }
+
+  msg->type = (output_buffer[0] << 8) | output_buffer[1];
+  msg->data_len = output_buffer.size() - sizeof(msg->type);
+  std::copy(output_buffer.begin() + 2, output_buffer.end(), msg->data);
+  output_buffer.resize(0);
+  return NO_ERROR;
+}
+
+int TestHarness::GetData(raw_message* msg, microseconds timeout) {
+  return FLAGS_util_use_ahdlc ? GetAhdlc(msg, timeout) : GetSpi(msg, timeout);
+}
+
+void TestHarness::Init(const char* path) {
   if (verbosity >= INFO) {
     std::cout << "init() start\n";
     std::cout.flush();
   }
 
-  encoder.buffer_len = PROTO_BUFFER_MAX_LEN;
-  encoder.frame_buffer = reinterpret_cast<uint8_t*>(malloc(encoder.buffer_len));
-  if (ahdlcEncoderInit(&encoder, CRC16) != AHDLC_OK) {
-    fatal_error("ahdlcEncoderInit()");
+  if (FLAGS_util_use_ahdlc) {  // AHDLC UART transport
+    encoder.buffer_len = output_buffer.size();
+    encoder.frame_buffer = output_buffer.data();
+    if (ahdlcEncoderInit(&encoder, CRC16) != AHDLC_OK) {
+      FatalError("ahdlcEncoderInit()");
+    }
+
+    decoder.buffer_len = input_buffer.size();
+    decoder.pdu_buffer = input_buffer.data();
+    if (AhdlcDecoderInit(&decoder, CRC16) != AHDLC_OK) {
+      FatalError("AhdlcDecoderInit()");
+    }
   }
 
-  decoder.buffer_len = PROTO_BUFFER_MAX_LEN;
-  decoder.pdu_buffer = reinterpret_cast<uint8_t*>(malloc(decoder.buffer_len));
-  if (AhdlcDecoderInit(&decoder, CRC16) != AHDLC_OK) {
-    fatal_error("AhdlcDecoderInit()");
-  }
+  // libnos SPI transport is initialized on first use for interoperability.
 
-  /*memset(&tty_state, 0, sizeof(tty_state));
-
-  tty_state.c_cc[VMIN] = 0;
-  tty_state.c_cc[VTIME] = 0;
-  tty_state.c_iflag = CREAD | CS8 | CLOCAL;
-  cfsetispeed(&tty_state, B115200);
-  cfsetospeed(&tty_state, B115200);*/
-
+#ifndef CONFIG_NO_UART
+  // Setup UART
   errno = 0;
-  //tty_fd = open(path, O_RDWR | O_NONBLOCK);
   tty_fd = open(path, O_RDWR | O_NOCTTY | O_NDELAY);
   if (errno != 0) {
     perror("ERROR open()");
-    fatal_error("");
+    FatalError("");
   }
   errno = 0;
 
   if (!isatty(tty_fd)) {
-    fatal_error("Path is not a tty");
+    FatalError("Path is not a tty");
   }
 
   if (tcgetattr(tty_fd, &tty_state)) {
     perror("ERROR tcgetattr()");
-    fatal_error("");
+    FatalError("");
   }
 
   if (cfsetospeed(&tty_state, B115200) ||
       cfsetispeed(&tty_state, B115200)) {
     perror("ERROR cfsetospeed()");
-    fatal_error("");
+    FatalError("");
   }
 
   tty_state.c_cc[VMIN] = 0;
   tty_state.c_cc[VTIME] = 0;
 
   tty_state.c_iflag = tty_state.c_iflag & ~(IXON | ISTRIP | INPCK | PARMRK |
-                                            INLCR | ICRNL | BRKINT | IGNBRK);
+      INLCR | ICRNL | BRKINT | IGNBRK);
   tty_state.c_iflag = 0;
   tty_state.c_oflag = 0;
   tty_state.c_lflag = tty_state.c_lflag & ~(ECHO | ECHONL | ICANON | IEXTEN |
-                                            ISIG);
+      ISIG);
   tty_state.c_cflag = (tty_state.c_cflag & ~(CSIZE | PARENB)) | CS8;
 
   if (tcsetattr(tty_fd, TCSAFLUSH, &tty_state)) {
     perror("ERROR tcsetattr()");
-    fatal_error("");
+    FatalError("");
   }
+#endif  // CONFIG_NO_UART
 
   if (verbosity >= INFO) {
     std::cout << "init() finish\n";
@@ -304,40 +388,44 @@ void TestHarness::init(const char* path) {
   }
 }
 
-bool TestHarness::switchFromConsoleToProtoApi() {
+bool TestHarness::UsingSpi() const {
+  return !FLAGS_util_use_ahdlc;
+}
+
+bool TestHarness::SwitchFromConsoleToProtoApi() {
   if (verbosity >= INFO) {
-    std::cout << "switchFromConsoleToProtoApi() start\n";
+    std::cout << "SwitchFromConsoleToProtoApi() start\n";
     std::cout.flush();
   }
 
   if (tty_fd == -1) { return false; }
 
-  readUntil(BYTE_TIME * 1024);
+  ReadUntil(BYTE_TIME * 1024);
 
-  blockingWrite("version\n", 1);
+  BlockingWrite("version\n", 1);
 
-  readUntil(BYTE_TIME * 1024);
+  ReadUntil(BYTE_TIME * 1024);
 
-  blockingWrite("\n", 1);
+  BlockingWrite("\n", 1);
 
-  while (readLineUntilBlock() != "> ") {}
+  while (ReadLineUntilBlock() != "> ") {}
 
   const char command[] = "protoapi uart on 1\n";
-  blockingWrite(command, sizeof(command) - 1);
+  BlockingWrite(command, sizeof(command) - 1);
 
-  readUntil(BYTE_TIME * 1024);
+  ReadUntil(BYTE_TIME * 1024);
 
   if (verbosity >= INFO) {
-    std::cout << "switchFromConsoleToProtoApi() finish\n";
+    std::cout << "SwitchFromConsoleToProtoApi() finish\n";
     std::cout.flush();
   }
 
   return true;
 }
 
-bool TestHarness::switchFromProtoApiToConsole(raw_message* out_msg) {
+bool TestHarness::SwitchFromProtoApiToConsole(raw_message* out_msg) {
   if (verbosity >= INFO) {
-    std::cout << "switchFromProtoApiToConsole() start\n";
+    std::cout << "SwitchFromProtoApiToConsole() start\n";
     std::cout.flush();
   }
 
@@ -352,12 +440,12 @@ bool TestHarness::switchFromProtoApiToConsole(raw_message* out_msg) {
   std::copy(line.begin(), line.end(), msg.data);
   msg.data_len = line.size();
 
-  if (sendAhdlc(msg) != error_codes::NO_ERROR) {
+  if (SendAhdlc(msg) != error_codes::NO_ERROR) {
     return false;
   }
 
 
-  if (getAhdlc(&msg, 4096 * BYTE_TIME) == NO_ERROR &&
+  if (GetAhdlc(&msg, 4096 * BYTE_TIME) == NO_ERROR &&
       msg.type == APImessageID::NOTICE) {
     Notice message;
     message.ParseFromArray((char *) msg.data, msg.data_len);
@@ -372,10 +460,10 @@ bool TestHarness::switchFromProtoApiToConsole(raw_message* out_msg) {
     return false;
   }
 
-  readUntil(BYTE_TIME * 4096);
+  ReadUntil(BYTE_TIME * 4096);
 
   if (verbosity >= INFO) {
-    std::cout << "switchFromProtoApiToConsole() finish\n";
+    std::cout << "SwitchFromProtoApiToConsole() finish\n";
     std::cout.flush();
   }
   if (out_msg) {
@@ -384,7 +472,7 @@ bool TestHarness::switchFromProtoApiToConsole(raw_message* out_msg) {
   return true;
 }
 
-void TestHarness::blockingWrite(const char* data, size_t len) {
+void TestHarness::BlockingWrite(const char* data, size_t len) {
   if (verbosity >= INFO) {
     std::cout << "TX: ";
     for (size_t i = 0; i < len; ++i) {
@@ -408,7 +496,7 @@ void TestHarness::blockingWrite(const char* data, size_t len) {
     }
     if (return_value < 0) {
       if (errno != EWOULDBLOCK && errno != EAGAIN) {
-        fatal_error("write(tty_fd,...)");
+        FatalError("write(tty_fd,...)");
       } else {
         std::this_thread::sleep_for(BYTE_TIME);
       }
@@ -418,7 +506,7 @@ void TestHarness::blockingWrite(const char* data, size_t len) {
   }
 }
 
-string TestHarness::readLineUntilBlock() {
+string TestHarness::ReadLineUntilBlock() {
   string line = "";
   line.reserve(128);
   char read_value = ' ';
@@ -455,7 +543,11 @@ string TestHarness::readLineUntilBlock() {
   return line;
 }
 
-string TestHarness::readUntil(microseconds end) {
+string TestHarness::ReadUntil(microseconds end) {
+#ifdef CONFIG_NO_UART
+  std::this_thread::sleep_for(end);
+  return "";
+#else
   char read_value = ' ';
   bool first = true;
   std::stringstream ss;
@@ -493,10 +585,11 @@ string TestHarness::readUntil(microseconds end) {
   }
 
   return ss.str();
+#endif  // CONFIG_NO_UART
 }
 
 
-void fatal_error(const string& msg) {
+void FatalError(const string& msg) {
   std::cerr << "FATAL ERROR: " << msg << std::endl;
   exit(1);
 }

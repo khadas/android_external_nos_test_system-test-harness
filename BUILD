@@ -9,10 +9,10 @@ cc_binary(
     name = "runtests",
     srcs = [
         "src/gtest_with_gflags_main.cc",
+        "src/keymaster_tests.cc",
         "src/nugget_core_tests.cc",
         "src/runtests.cc",
         "src/weaver_tests.cc",
-        "src/keymaster_tests.cc",
     ],
     copts = COPTS,
     deps = [
@@ -23,10 +23,10 @@ cc_binary(
         "@gtest//:gtest",
         "@nugget_core_nugget//:config_chip",
         "@nugget_host_linux_citadel_libnos//:libnos",
-        "@nugget_test_systemtestharness_proto//:weaver_cc_proto",
-        "@nugget_test_systemtestharness_proto//:weaver_client_proto",
         "@nugget_test_systemtestharness_proto//:keymaster_cc_proto",
         "@nugget_test_systemtestharness_proto//:keymaster_client_proto",
+        "@nugget_test_systemtestharness_proto//:weaver_cc_proto",
+        "@nugget_test_systemtestharness_proto//:weaver_client_proto",
         "@nugget_test_systemtestharness_tools//:nugget_tools",
     ],
 )
@@ -60,8 +60,10 @@ cc_library(
     ],
     copts = COPTS,
     deps = [
+        "@com_github_gflags_gflags//:gflags",
         "@nugget_test_systemtestharness_proto//:protoapi_control_cc_proto",
         "@nugget_test_systemtestharness_proto//:protoapi_testing_api_cc_proto",
+        "@nugget_test_systemtestharness_tools//:nugget_tools",
         "@nugget_thirdparty_ahdlc//:ahdlc",
     ],
 )

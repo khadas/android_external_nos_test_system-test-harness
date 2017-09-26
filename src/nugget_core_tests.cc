@@ -94,10 +94,10 @@ TEST_F(NuggetCoreTest, SoftRebootTest) {
       APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer, &output_buffer));
   ASSERT_EQ(output_buffer.size(), 0);
 
-  string result = harness.readUntil(1042 * test_harness::BYTE_TIME);
+  string result = harness.ReadUntil(1042 * test_harness::BYTE_TIME);
   ASSERT_TRUE(RE2::PartialMatch(result, reboot_message_matcher));
   NuggetCoreTest::citadelClient->Close();
-  result = harness.readUntil(REBOOT_DELAY);
+  result = harness.ReadUntil(REBOOT_DELAY);
   NuggetCoreTest::citadelClient->Open();
   ASSERT_TRUE(NuggetCoreTest::citadelClient->IsOpen());
   ASSERT_TRUE(RE2::PartialMatch(
@@ -114,10 +114,10 @@ TEST_F(NuggetCoreTest, DISABLED_HardRebootTest) {
       APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer, &output_buffer));
   ASSERT_EQ(output_buffer.size(), 0);
 
-  string result = harness.readUntil(1042 * test_harness::BYTE_TIME);
+  string result = harness.ReadUntil(1042 * test_harness::BYTE_TIME);
   ASSERT_TRUE(RE2::PartialMatch(result, reboot_message_matcher));
   NuggetCoreTest::citadelClient->Close();
-  result = harness.readUntil(REBOOT_DELAY);
+  result = harness.ReadUntil(REBOOT_DELAY);
   NuggetCoreTest::citadelClient->Open();
   ASSERT_TRUE(NuggetCoreTest::citadelClient->IsOpen());
   ASSERT_TRUE(RE2::PartialMatch(result, "\\[Reset cause: ap-off\\]"));
