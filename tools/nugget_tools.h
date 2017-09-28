@@ -1,9 +1,11 @@
 #ifndef NUGGET_TOOLS_H
 #define NUGGET_TOOLS_H
 
-#include <string>
 #include <nos/debug.h>
 #include <nos/NuggetClient.h>
+
+#include <memory>
+#include <string>
 
 #define ASSERT_NO_ERROR(code) \
   ASSERT_EQ(code, app_status::APP_SUCCESS) \
@@ -11,7 +13,7 @@
 
 namespace nugget_tools {
 
-std::string getNosCoreSerial();
+std::unique_ptr<nos::NuggetClient> MakeNuggetClient();
 
 }  // namespace nugget_tools
 

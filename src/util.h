@@ -1,8 +1,6 @@
 #ifndef SRC_UTIL_H
 #define SRC_UTIL_H
 
-#include <termios.h>
-
 #include <chrono>
 #include <iostream>
 #include <memory>
@@ -10,8 +8,16 @@
 
 #include <google/protobuf/message.h>
 
+#ifdef ANDROID
+#define CONFIG_NO_UART 1
+#endif  // ANDROID
+
+#ifndef CONFIG_NO_UART
+#include <termios.h>
+
 #include "src/lib/inc/frame_layer.h"
 #include "src/lib/inc/frame_layer_types.h"
+#endif  // CONFIG_NO_UART
 #include "nugget_tools.h"
 
 using std::string;
@@ -84,9 +90,11 @@ class TestHarness {
 
   bool UsingSpi() const;
 
+#ifndef CONFIG_NO_UART
   bool SwitchFromConsoleToProtoApi();
 
   bool SwitchFromProtoApiToConsole(raw_message* out_msg);
+#endif  // CONFIG_NO_UART
 
  protected:
   int verbosity;
@@ -106,12 +114,14 @@ class TestHarness {
   string ReadLineUntilBlock();
 
   // Needed for AHDLC / UART.
-  int tty_fd;
+#ifndef CONFIG_NO_UART
   struct termios tty_state;
   ahdlc_frame_encoder_t encoder;
   ahdlc_frame_decoder_t decoder;
   int SendAhdlc(const raw_message& msg);
   int GetAhdlc(raw_message* msg, std::chrono::microseconds timeout);
+#endif  // CONFIG_NO_UART
+  int tty_fd;
 
   // Needed for libnos / SPI.
   unique_ptr<nos::NuggetClient> client;

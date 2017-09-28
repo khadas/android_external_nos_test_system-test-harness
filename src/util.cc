@@ -2,7 +2,6 @@
 
 #include <dirent.h>
 #include <fcntl.h>
-#include "gflags/gflags.h"
 #include <unistd.h>
 
 #include <algorithm>
@@ -15,7 +14,18 @@
 #include "nugget_tools.h"
 #include "nugget/app/protoapi/control.pb.h"
 #include "nugget/app/protoapi/header.pb.h"
+
+#ifndef CONFIG_NO_UART
 #include "src/lib/inc/crc_16.h"
+#endif  // CONFIG_NO_UART
+
+#ifdef ANDROID
+#define FLAGS_util_use_ahdlc false
+#else
+#include "gflags/gflags.h"
+
+DEFINE_bool(util_use_ahdlc, false, "Use aHDLC over UART instead of SPI.");
+#endif  // ANDROID
 
 using nugget::app::protoapi::APImessageID;
 using nugget::app::protoapi::ControlRequest;
@@ -25,8 +35,6 @@ using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 using std::chrono::microseconds;
-
-DEFINE_bool(util_use_ahdlc, false, "Use aHDLC over UART instead of SPI.");
 
 namespace test_harness {
 
@@ -74,13 +82,16 @@ TestHarness::TestHarness(const char* path) :
 
 TestHarness::~TestHarness() {
   std::cout << "CLOSING TEST HARNESS" << std::endl;
+
+#ifndef CONFIG_NO_UART
   if (FLAGS_util_use_ahdlc) {
     close(tty_fd);
-  } else {
-    if (client) {
-      client->Close();
-      client = unique_ptr<nos::NuggetClient >();
-    }
+  }
+#endif  // CONFIG_NO_UART
+
+  if (client) {
+    client->Close();
+    client = unique_ptr<nos::NuggetClient >();
   }
 }
 
@@ -117,9 +128,14 @@ void print_bin(std::ostream &out, uint8_t c) {
 }
 
 int TestHarness::SendData(const raw_message& msg) {
+#ifdef CONFIG_NO_UART
+  return SendSpi(msg);
+#else
   return FLAGS_util_use_ahdlc ? SendAhdlc(msg) : SendSpi(msg);
+#endif  // ANDROID
 }
 
+#ifndef CONFIG_NO_UART
 int TestHarness::SendAhdlc(const raw_message& msg) {
   if (EncodeNewFrame(&encoder) != AHDLC_OK) {
     return TRANSPORT_ERROR;
@@ -138,17 +154,17 @@ int TestHarness::SendAhdlc(const raw_message& msg) {
                 encoder.frame_info.buffer_index);
   return NO_ERROR;
 }
+#endif  // CONFIG_NO_UART
 
 int TestHarness::SendSpi(const raw_message& msg) {
   if (!client) {
-    client =
-        unique_ptr<nos::NuggetClient>(new nos::NuggetClient(
-            nugget_tools::getNosCoreSerial()));
+    client = nugget_tools::MakeNuggetClient();
     client->Open();
-    if(!client->IsOpen()) {
+    if (!client->IsOpen()) {
       FatalError("Unable to connect");
     }
   }
+
   input_buffer.resize(msg.data_len + sizeof(msg.type));
   input_buffer[0] = msg.type >> 8;
   input_buffer[1] = (uint8_t) msg.type;
@@ -209,6 +225,7 @@ int TestHarness::SendProto(uint16_t type,
   return return_value;
 }
 
+#ifndef CONFIG_NO_UART
 int TestHarness::GetAhdlc(raw_message* msg, microseconds timeout) {
   if (verbosity >= INFO) {
     std::cout << "RX: ";
@@ -291,8 +308,10 @@ int TestHarness::GetAhdlc(raw_message* msg, microseconds timeout) {
     }
   }
 }
+#endif  // CONFIG_NO_UART
 
 int TestHarness::GetSpi(raw_message* msg, microseconds timeout) {
+  if (timeout > microseconds(0)) {}  // Prevent unused parameter warning.
   if (output_buffer.size() < 2) {
     return GENERIC_ERROR;
   }
@@ -318,7 +337,11 @@ int TestHarness::GetSpi(raw_message* msg, microseconds timeout) {
 }
 
 int TestHarness::GetData(raw_message* msg, microseconds timeout) {
+#ifdef CONFIG_NO_UART
+  return GetSpi(msg, timeout);
+#else
   return FLAGS_util_use_ahdlc ? GetAhdlc(msg, timeout) : GetSpi(msg, timeout);
+#endif  // CONFIG_NO_UART
 }
 
 void TestHarness::Init(const char* path) {
@@ -327,7 +350,8 @@ void TestHarness::Init(const char* path) {
     std::cout.flush();
   }
 
-  if (FLAGS_util_use_ahdlc) {  // AHDLC UART transport
+#ifndef CONFIG_NO_UART
+  if (FLAGS_util_use_ahdlc) {  // AHDLC UART transport.
     encoder.buffer_len = output_buffer.size();
     encoder.frame_buffer = output_buffer.data();
     if (ahdlcEncoderInit(&encoder, CRC16) != AHDLC_OK) {
@@ -341,9 +365,6 @@ void TestHarness::Init(const char* path) {
     }
   }
 
-  // libnos SPI transport is initialized on first use for interoperability.
-
-#ifndef CONFIG_NO_UART
   // Setup UART
   errno = 0;
   tty_fd = open(path, O_RDWR | O_NOCTTY | O_NDELAY);
@@ -383,7 +404,11 @@ void TestHarness::Init(const char* path) {
     perror("ERROR tcsetattr()");
     FatalError("");
   }
+#else
+  if (path) {}  // Prevent the unused variable warning for path.
 #endif  // CONFIG_NO_UART
+
+  // libnos SPI transport is initialized on first use for interoperability.
 
   if (verbosity >= INFO) {
     std::cout << "init() finish\n";
@@ -395,13 +420,14 @@ bool TestHarness::UsingSpi() const {
   return !FLAGS_util_use_ahdlc;
 }
 
+#ifndef CONFIG_NO_UART
 bool TestHarness::SwitchFromConsoleToProtoApi() {
   if (verbosity >= INFO) {
     std::cout << "SwitchFromConsoleToProtoApi() start\n";
     std::cout.flush();
   }
 
-  if (tty_fd == -1) { return false; }
+  if (!ttyState()) { return false; }
 
   ReadUntil(BYTE_TIME * 1024);
 
@@ -474,6 +500,7 @@ bool TestHarness::SwitchFromProtoApiToConsole(raw_message* out_msg) {
   }
   return true;
 }
+#endif  // CONFIG_NO_UART
 
 void TestHarness::BlockingWrite(const char* data, size_t len) {
   if (verbosity >= INFO) {

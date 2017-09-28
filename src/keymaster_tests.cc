@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 #include "nugget_tools.h"
-#include "keymaster.pb.h"
+#include "nugget/app/keymaster/keymaster.pb.h"
 #include "Keymaster.client.h"
 
 #include "src/include/keymaster/hal/3.0/types.h"
@@ -26,9 +26,7 @@ class KeymasterTest: public testing::Test {
 unique_ptr<nos::NuggetClient> KeymasterTest::client;
 
 void KeymasterTest::SetUpTestCase() {
-  client =
-      unique_ptr<nos::NuggetClient>(new nos::NuggetClient(
-          nugget_tools::getNosCoreSerial()));
+  client = nugget_tools::MakeNuggetClient();
   client->Open();
   EXPECT_TRUE(client->IsOpen()) << "Unable to connect";
 }

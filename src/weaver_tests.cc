@@ -4,7 +4,7 @@
 
 #include "gtest/gtest.h"
 #include "nugget_tools.h"
-#include "weaver.pb.h"
+#include "nugget/app/weaver/weaver.pb.h"
 #include "Weaver.client.h"
 
 using std::cout;
@@ -48,9 +48,7 @@ uint32_t WeaverTest::slot = WeaverTest::random_number_generator() & 0x3f;
 unique_ptr<nos::NuggetClient> WeaverTest::client;
 
 void WeaverTest::SetUpTestCase() {
-  client =
-      unique_ptr<nos::NuggetClient>(new nos::NuggetClient(
-          nugget_tools::getNosCoreSerial()));
+  client = nugget_tools::MakeNuggetClient();
   client->Open();
   EXPECT_TRUE(client->IsOpen()) << "Unable to connect";
 }
@@ -84,7 +82,7 @@ void WeaverTest::testRead(uint32_t slot, const uint8_t *key,
   Weaver service(*client);
   ASSERT_NO_ERROR(service.Read(request, &response));
   ASSERT_EQ(response.error(), ReadResponse::NONE);
-  ASSERT_EQ(response.throttle_msec(), 0);
+  ASSERT_EQ(response.throttle_msec(), 0u);
   auto response_value = response.value();
   for (size_t x = 0; x < KEY_SIZE; ++x) {
     ASSERT_EQ(response_value[x], value[x]) << "Inconsistency at index " << x;
@@ -143,9 +141,9 @@ TEST_F(WeaverTest, GetConfig) {
 
   Weaver service(*client);
   ASSERT_NO_ERROR(service.GetConfig(request, &response));
-  EXPECT_EQ(response.number_of_slots(), 64);
-  EXPECT_EQ(response.key_size(), 16);
-  EXPECT_EQ(response.value_size(), 16);
+  EXPECT_EQ(response.number_of_slots(), 64u);
+  EXPECT_EQ(response.key_size(), 16u);
+  EXPECT_EQ(response.value_size(), 16u);
 }
 
 TEST_F(WeaverTest, WriteReadErase) {

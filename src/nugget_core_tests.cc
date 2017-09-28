@@ -3,15 +3,14 @@
 #include <memory>
 #include <nos/NuggetClient.h>
 
-#include "gflags/gflags.h"
 #include "gtest/gtest.h"
 #include "nugget_tools.h"
 #include "util.h"
 
-extern "C" {
-  // TODO: remove this need for this include
-#include "core/citadel/config_chip.h"
-}
+// TODO(allenwebb) remove this when libnos no longer needs it to be predefined.
+#ifndef CHIP_FLASH_BANK_SIZE
+#define CHIP_FLASH_BANK_SIZE 2048
+#endif  // CHIP_FLASH_BANK_SIZE
 #include <app_nugget.h>
 
 using std::cout;
@@ -37,9 +36,7 @@ vector<uint8_t> NuggetCoreTest::input_buffer;
 vector<uint8_t> NuggetCoreTest::output_buffer;
 
 void NuggetCoreTest::SetUpTestCase() {
-  client =
-      unique_ptr<nos::NuggetClient>(new nos::NuggetClient(
-          nugget_tools::getNosCoreSerial()));
+  client = nugget_tools::MakeNuggetClient();
   client->Open();
   input_buffer.reserve(0x4000);
   output_buffer.reserve(0x4000);
@@ -56,7 +53,7 @@ TEST_F(NuggetCoreTest, GetVersionStringTest) {
   input_buffer.resize(0);
   ASSERT_NO_ERROR(NuggetCoreTest::client->CallApp(
       APP_ID_NUGGET, NUGGET_PARAM_VERSION, input_buffer, &output_buffer));
-  ASSERT_GT(output_buffer.size(), 0);
+  ASSERT_GT(output_buffer.size(), 0u);
   cout << string((char*) output_buffer.data(), output_buffer.size()) <<"\n";
   cout.flush();
 }
@@ -92,7 +89,7 @@ TEST_F(NuggetCoreTest, SoftRebootTest) {
   input_buffer[0] = 0;  // 0 = soft reboot, 1 = hard reboot
   ASSERT_NO_ERROR(NuggetCoreTest::client->CallApp(
       APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer, &output_buffer));
-  ASSERT_EQ(output_buffer.size(), 0);
+  ASSERT_EQ(output_buffer.size(), 0u);
 
   NuggetCoreTest::client->Close();
   harness.ReadUntil(REBOOT_DELAY);
@@ -115,7 +112,7 @@ TEST_F(NuggetCoreTest, DISABLED_HardRebootTest) {
   input_buffer[0] = 1;  // 0 = soft reboot, 1 = hard reboot
   ASSERT_NO_ERROR(NuggetCoreTest::client->CallApp(
       APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer, &output_buffer));
-  ASSERT_EQ(output_buffer.size(), 0);
+  ASSERT_EQ(output_buffer.size(), 0u);
 
   NuggetCoreTest::client->Close();
   harness.ReadUntil(REBOOT_DELAY);
