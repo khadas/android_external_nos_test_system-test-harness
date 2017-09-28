@@ -9,6 +9,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_gflags_gflags//:gflags",
-        "@nugget_host_generic_libnos_citadel//:libnos_citadel_linux",
+        "@nugget_host_linux_citadel_libnos//:libnos",
     ],
 )

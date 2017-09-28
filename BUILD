@@ -21,7 +21,8 @@ cc_binary(
         "@com_github_gflags_gflags//:gflags",
         "@com_googlesource_android_platform_external_regex_re2//:regex_re2",
         "@gtest//:gtest",
-        "@nugget_host_generic_libnos_citadel//:libnos_citadel_linux",
+        "@nugget_core_nugget//:config_chip",
+        "@nugget_host_linux_citadel_libnos//:libnos",
         "@nugget_test_systemtestharness_proto//:weaver_cc_proto",
         "@nugget_test_systemtestharness_proto//:weaver_client_proto",
         "@nugget_test_systemtestharness_proto//:keymaster_cc_proto",
@@ -45,7 +46,7 @@ cc_binary(
         ":util",
         "@com_github_gflags_gflags//:gflags",
         "@gtest//:gtest",
-        "@nugget_host_generic_libnos_citadel//:libnos_citadel_linux",
+        "@nugget_host_linux_citadel_libnos//:libnos",
     ],
 )
 

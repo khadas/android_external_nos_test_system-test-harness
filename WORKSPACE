@@ -188,13 +188,28 @@ local_repository(
 )
 
 local_repository(
-    name = "nugget_host_generic_libnos_citadel",
-    path = "../../host/generic/libnos/citadel",
+    name = "nugget_host_generic_libnos_datagram",
+    path = "../../host/generic/libnos_datagram",
+)
+
+local_repository(
+    name = "nugget_host_generic_libnos_transport",
+    path = "../../host/generic/libnos_transport",
 )
 
 local_repository(
     name = "nugget_host_generic_libnos_generator",
     path = "../../host/generic/libnos/generator",
+)
+
+local_repository(
+    name = "nugget_host_linux_citadel_libnos",
+    path = "../../host/linux/citadel/libnos",
+)
+
+local_repository(
+    name = "nugget_host_linux_citadel_libnos_datagram",
+    path = "../../host/linux/citadel/libnos_datagram",
 )
 
 local_repository(

@@ -2,7 +2,7 @@
 #define NUGGET_TOOLS_H
 
 #include <string>
-#include <nos/LinuxCitadelClient.h>
+#include <nos/linux/CitadelClient.h>
 
 #define ASSERT_NO_ERROR(code) \
   ASSERT_EQ(code, app_status::APP_SUCCESS) \

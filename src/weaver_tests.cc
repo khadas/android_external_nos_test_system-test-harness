@@ -20,7 +20,7 @@ class WeaverTest: public testing::Test {
   static std::random_device random_number_generator;
   static uint32_t slot;
 
-  static unique_ptr<nos::LinuxCitadelClient> citadelClient;
+  static unique_ptr<nos::linux::CitadelClient> citadelClient;
 
   static void SetUpTestCase();
   static void TearDownTestCase();
@@ -40,11 +40,11 @@ std::random_device WeaverTest::random_number_generator;
 /** A random slot is used for each test run to even the wear on the flash. */
 uint32_t WeaverTest::slot = WeaverTest::random_number_generator() & 0x3f;
 
-unique_ptr<nos::LinuxCitadelClient> WeaverTest::citadelClient;
+unique_ptr<nos::linux::CitadelClient> WeaverTest::citadelClient;
 
 void WeaverTest::SetUpTestCase() {
   citadelClient =
-      unique_ptr<nos::LinuxCitadelClient>(new nos::LinuxCitadelClient(
+      unique_ptr<nos::linux::CitadelClient>(new nos::linux::CitadelClient(
           nugget_tools::getNosCoreFreq(), nugget_tools::getNosCoreSerial()));
   citadelClient->open();
   EXPECT_TRUE(citadelClient->isOpen()) << "Unable to connect";
@@ -52,7 +52,7 @@ void WeaverTest::SetUpTestCase() {
 
 void WeaverTest::TearDownTestCase() {
   citadelClient->close();
-  citadelClient = unique_ptr<nos::LinuxCitadelClient>();
+  citadelClient = unique_ptr<nos::linux::CitadelClient>();
 }
 
 void WeaverTest::testWrite(uint32_t slot, const uint8_t *key,

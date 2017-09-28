@@ -13,17 +13,17 @@ namespace {
 
 class KeymasterTest: public testing::Test {
  protected:
-  static unique_ptr<nos::LinuxCitadelClient> citadelClient;
+  static unique_ptr<nos::linux::CitadelClient> citadelClient;
 
   static void SetUpTestCase();
   static void TearDownTestCase();
 };
 
-unique_ptr<nos::LinuxCitadelClient> KeymasterTest::citadelClient;
+unique_ptr<nos::linux::CitadelClient> KeymasterTest::citadelClient;
 
 void KeymasterTest::SetUpTestCase() {
   citadelClient =
-      unique_ptr<nos::LinuxCitadelClient>(new nos::LinuxCitadelClient(
+      unique_ptr<nos::linux::CitadelClient>(new nos::linux::CitadelClient(
           nugget_tools::getNosCoreFreq(), nugget_tools::getNosCoreSerial()));
   citadelClient->open();
   EXPECT_TRUE(citadelClient->isOpen()) << "Unable to connect";
@@ -31,7 +31,7 @@ void KeymasterTest::SetUpTestCase() {
 
 void KeymasterTest::TearDownTestCase() {
   citadelClient->close();
-  citadelClient = unique_ptr<nos::LinuxCitadelClient>();
+  citadelClient = unique_ptr<nos::linux::CitadelClient>();
 }
 
 }  // namespace

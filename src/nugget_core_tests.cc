@@ -1,13 +1,19 @@
 
 #include <chrono>
 #include <memory>
-#include <nos/LinuxCitadelClient.h>
+#include <nos/linux/CitadelClient.h>
 
 #include "gflags/gflags.h"
 #include "gtest/gtest.h"
 #include "nugget_tools.h"
 #include "re2/re2.h"
 #include "util.h"
+
+extern "C" {
+  // TODO: remove this need for this include
+#include "core/citadel/config_chip.h"
+}
+#include <app_nugget.h>
 
 using std::cout;
 using std::string;
@@ -21,19 +27,19 @@ class NuggetCoreTest: public testing::Test {
   static void SetUpTestCase();
   static void TearDownTestCase();
 
-  static unique_ptr<nos::LinuxCitadelClient> citadelClient;
+  static unique_ptr<nos::linux::CitadelClient> citadelClient;
   static vector<uint8_t> input_buffer;
   static vector<uint8_t> output_buffer;
 };
 
-unique_ptr<nos::LinuxCitadelClient> NuggetCoreTest::citadelClient;
+unique_ptr<nos::linux::CitadelClient> NuggetCoreTest::citadelClient;
 
 vector<uint8_t> NuggetCoreTest::input_buffer;
 vector<uint8_t> NuggetCoreTest::output_buffer;
 
 void NuggetCoreTest::SetUpTestCase() {
   citadelClient =
-      unique_ptr<nos::LinuxCitadelClient>(new nos::LinuxCitadelClient(
+      unique_ptr<nos::linux::CitadelClient>(new nos::linux::CitadelClient(
           nugget_tools::getNosCoreFreq(), nugget_tools::getNosCoreSerial()));
   citadelClient->open();
   input_buffer.reserve(0x4000);
@@ -43,7 +49,7 @@ void NuggetCoreTest::SetUpTestCase() {
 
 void NuggetCoreTest::TearDownTestCase() {
   citadelClient->close();
-  citadelClient = unique_ptr<nos::LinuxCitadelClient>();
+  citadelClient = unique_ptr<nos::linux::CitadelClient>();
 }
 
 // ./test_app --id 0 -p 0 -a
