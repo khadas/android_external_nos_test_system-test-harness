@@ -41,22 +41,22 @@ void NuggetCoreTest::SetUpTestCase() {
   citadelClient =
       unique_ptr<nos::linux::CitadelClient>(new nos::linux::CitadelClient(
           nugget_tools::getNosCoreFreq(), nugget_tools::getNosCoreSerial()));
-  citadelClient->open();
+  citadelClient->Open();
   input_buffer.reserve(0x4000);
   output_buffer.reserve(0x4000);
-  EXPECT_TRUE(citadelClient->isOpen()) << "Unable to connect";
+  EXPECT_TRUE(citadelClient->IsOpen()) << "Unable to connect";
 }
 
 void NuggetCoreTest::TearDownTestCase() {
-  citadelClient->close();
+  citadelClient->Close();
   citadelClient = unique_ptr<nos::linux::CitadelClient>();
 }
 
 // ./test_app --id 0 -p 0 -a
 TEST_F(NuggetCoreTest, GetVersionStringTest) {
   input_buffer.resize(0);
-  ASSERT_NO_ERROR(NuggetCoreTest::citadelClient->callApp(
-      APP_ID_NUGGET, NUGGET_PARAM_VERSION, input_buffer, output_buffer));
+  ASSERT_NO_ERROR(NuggetCoreTest::citadelClient->CallApp(
+      APP_ID_NUGGET, NUGGET_PARAM_VERSION, input_buffer, &output_buffer));
   ASSERT_GT(output_buffer.size(), 0);
   cout << string((char*) output_buffer.data(), output_buffer.size()) <<"\n";
   cout.flush();
@@ -70,8 +70,8 @@ TEST_F(NuggetCoreTest, ReverseStringTest) {
   std::copy(test_string, test_string + sizeof(test_string),
             input_buffer.begin());
 
-  ASSERT_NO_ERROR(NuggetCoreTest::citadelClient->callApp(
-      APP_ID_NUGGET, NUGGET_PARAM_REVERSE, input_buffer, output_buffer));
+  ASSERT_NO_ERROR(NuggetCoreTest::citadelClient->CallApp(
+      APP_ID_NUGGET, NUGGET_PARAM_REVERSE, input_buffer, &output_buffer));
 
   ASSERT_EQ(output_buffer.size(), sizeof(test_string));
 
@@ -90,16 +90,16 @@ TEST_F(NuggetCoreTest, SoftRebootTest) {
 
   input_buffer.resize(1);
   input_buffer[0] = 0;  // 0 = soft reboot, 1 = hard reboot
-  ASSERT_NO_ERROR(NuggetCoreTest::citadelClient->callApp(
-      APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer, output_buffer));
+  ASSERT_NO_ERROR(NuggetCoreTest::citadelClient->CallApp(
+      APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer, &output_buffer));
   ASSERT_EQ(output_buffer.size(), 0);
 
   string result = harness.readUntil(1042 * test_harness::BYTE_TIME);
   ASSERT_TRUE(RE2::PartialMatch(result, reboot_message_matcher));
-  NuggetCoreTest::citadelClient->close();
+  NuggetCoreTest::citadelClient->Close();
   result = harness.readUntil(REBOOT_DELAY);
-  NuggetCoreTest::citadelClient->open();
-  ASSERT_TRUE(NuggetCoreTest::citadelClient->isOpen());
+  NuggetCoreTest::citadelClient->Open();
+  ASSERT_TRUE(NuggetCoreTest::citadelClient->IsOpen());
   ASSERT_TRUE(RE2::PartialMatch(
       result, "\\[Reset cause: hibernate rtc-alarm\\]"));
 }
@@ -110,16 +110,16 @@ TEST_F(NuggetCoreTest, DISABLED_HardRebootTest) {
 
   input_buffer.resize(1);
   input_buffer[0] = 1;  // 0 = soft reboot, 1 = hard reboot
-  ASSERT_NO_ERROR(NuggetCoreTest::citadelClient->callApp(
-      APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer, output_buffer));
+  ASSERT_NO_ERROR(NuggetCoreTest::citadelClient->CallApp(
+      APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer, &output_buffer));
   ASSERT_EQ(output_buffer.size(), 0);
 
   string result = harness.readUntil(1042 * test_harness::BYTE_TIME);
   ASSERT_TRUE(RE2::PartialMatch(result, reboot_message_matcher));
-  NuggetCoreTest::citadelClient->close();
+  NuggetCoreTest::citadelClient->Close();
   result = harness.readUntil(REBOOT_DELAY);
-  NuggetCoreTest::citadelClient->open();
-  ASSERT_TRUE(NuggetCoreTest::citadelClient->isOpen());
+  NuggetCoreTest::citadelClient->Open();
+  ASSERT_TRUE(NuggetCoreTest::citadelClient->IsOpen());
   ASSERT_TRUE(RE2::PartialMatch(result, "\\[Reset cause: ap-off\\]"));
 }
 

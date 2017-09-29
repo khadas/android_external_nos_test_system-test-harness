@@ -25,12 +25,12 @@ void KeymasterTest::SetUpTestCase() {
   citadelClient =
       unique_ptr<nos::linux::CitadelClient>(new nos::linux::CitadelClient(
           nugget_tools::getNosCoreFreq(), nugget_tools::getNosCoreSerial()));
-  citadelClient->open();
-  EXPECT_TRUE(citadelClient->isOpen()) << "Unable to connect";
+  citadelClient->Open();
+  EXPECT_TRUE(citadelClient->IsOpen()) << "Unable to connect";
 }
 
 void KeymasterTest::TearDownTestCase() {
-  citadelClient->close();
+  citadelClient->Close();
   citadelClient = unique_ptr<nos::linux::CitadelClient>();
 }
 
