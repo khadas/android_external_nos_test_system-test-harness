@@ -56,7 +56,7 @@ TestHarness::TestHarness() : verbosity(INFO),
                              output_buffer(PROTO_BUFFER_MAX_LEN, 0),
                              input_buffer(PROTO_BUFFER_MAX_LEN, 0), tty_fd(-1) {
 #ifdef CONFIG_NO_UART
-  init(nullptr);
+  Init(nullptr);
 #else
   string path = find_uart();
   Init(path.c_str());

@@ -6,7 +6,6 @@
 #include "gflags/gflags.h"
 #include "gtest/gtest.h"
 #include "nugget_tools.h"
-#include "re2/re2.h"
 #include "util.h"
 
 extern "C" {
@@ -81,9 +80,10 @@ TEST_F(NuggetCoreTest, ReverseStringTest) {
   }
 }
 
-// matches [97.721660 Rebooting in 2 seconds]\x0d
-RE2 reboot_message_matcher("\\[[0-9]+\\.[0-9]+ Rebooting in [0-9]+ seconds\\]");
+// Time to wait until expecting citadel to be ready after reboot request.
 const auto REBOOT_DELAY = std::chrono::microseconds(2250000);
+// Threshold for the number of clock cycles returned by citadel after reboot.
+const uint32_t CLOCK_THRESHOLD = 525000;
 
 TEST_F(NuggetCoreTest, SoftRebootTest) {
   test_harness::TestHarness harness;
@@ -94,14 +94,17 @@ TEST_F(NuggetCoreTest, SoftRebootTest) {
       APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer, &output_buffer));
   ASSERT_EQ(output_buffer.size(), 0);
 
-  string result = harness.ReadUntil(1042 * test_harness::BYTE_TIME);
-  ASSERT_TRUE(RE2::PartialMatch(result, reboot_message_matcher));
   NuggetCoreTest::citadelClient->Close();
-  result = harness.ReadUntil(REBOOT_DELAY);
+  harness.ReadUntil(REBOOT_DELAY);
   NuggetCoreTest::citadelClient->Open();
   ASSERT_TRUE(NuggetCoreTest::citadelClient->IsOpen());
-  ASSERT_TRUE(RE2::PartialMatch(
-      result, "\\[Reset cause: hibernate rtc-alarm\\]"));
+
+  ASSERT_NO_ERROR(NuggetCoreTest::citadelClient->CallApp(
+      APP_ID_NUGGET, NUGGET_PARAM_CYCLES_SINCE_BOOT, input_buffer,
+      &output_buffer));
+  ASSERT_EQ(output_buffer.size(), sizeof(uint32_t));
+  uint32_t post_reboot = *reinterpret_cast<uint32_t *>(output_buffer.data());
+  ASSERT_LT(post_reboot, CLOCK_THRESHOLD);
 }
 
 // TODO(b/65930573) enable this test after it no longer breaks libnos.
@@ -114,13 +117,17 @@ TEST_F(NuggetCoreTest, DISABLED_HardRebootTest) {
       APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer, &output_buffer));
   ASSERT_EQ(output_buffer.size(), 0);
 
-  string result = harness.ReadUntil(1042 * test_harness::BYTE_TIME);
-  ASSERT_TRUE(RE2::PartialMatch(result, reboot_message_matcher));
   NuggetCoreTest::citadelClient->Close();
-  result = harness.ReadUntil(REBOOT_DELAY);
+  harness.ReadUntil(REBOOT_DELAY);
   NuggetCoreTest::citadelClient->Open();
   ASSERT_TRUE(NuggetCoreTest::citadelClient->IsOpen());
-  ASSERT_TRUE(RE2::PartialMatch(result, "\\[Reset cause: ap-off\\]"));
+
+  ASSERT_NO_ERROR(NuggetCoreTest::citadelClient->CallApp(
+      APP_ID_NUGGET, NUGGET_PARAM_CYCLES_SINCE_BOOT, input_buffer,
+      &output_buffer));
+  ASSERT_EQ(output_buffer.size(), sizeof(uint32_t));
+  uint32_t post_reboot = *reinterpret_cast<uint32_t *>(output_buffer.data());
+  ASSERT_LT(post_reboot, CLOCK_THRESHOLD);
 }
 
 

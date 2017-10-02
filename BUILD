@@ -19,7 +19,6 @@ cc_binary(
         ":util",
         "@boringssl//:ssl",
         "@com_github_gflags_gflags//:gflags",
-        "@com_googlesource_android_platform_external_regex_re2//:regex_re2",
         "@gtest//:gtest",
         "@nugget_core_nugget//:config_chip",
         "@nugget_host_linux_citadel_libnos//:libnos",
