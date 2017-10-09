@@ -57,7 +57,7 @@ cc_library(
     deps = [
         "nugget_protobuf_options_cc_proto",
         "weaver_cc_proto",
-        "@nugget_host_linux_citadel_libnos//:libnos",
+        "@nugget_host_generic_libnos//:libnos",
     ],
 )
 
@@ -84,7 +84,7 @@ cc_library(
     deps = [
         "nugget_protobuf_options_cc_proto",
         "keymaster_cc_proto",
-        "@nugget_host_linux_citadel_libnos//:libnos",
+        "@nugget_host_generic_libnos//:libnos",
     ],
 )
 

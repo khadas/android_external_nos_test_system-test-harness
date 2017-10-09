@@ -20,7 +20,7 @@ class WeaverTest: public testing::Test {
   static std::random_device random_number_generator;
   static uint32_t slot;
 
-  static unique_ptr<nos::linux::CitadelClient> citadelClient;
+  static unique_ptr<nos::NuggetClient> client;
 
   static void SetUpTestCase();
   static void TearDownTestCase();
@@ -40,19 +40,19 @@ std::random_device WeaverTest::random_number_generator;
 /** A random slot is used for each test run to even the wear on the flash. */
 uint32_t WeaverTest::slot = WeaverTest::random_number_generator() & 0x3f;
 
-unique_ptr<nos::linux::CitadelClient> WeaverTest::citadelClient;
+unique_ptr<nos::NuggetClient> WeaverTest::client;
 
 void WeaverTest::SetUpTestCase() {
-  citadelClient =
-      unique_ptr<nos::linux::CitadelClient>(new nos::linux::CitadelClient(
-          nugget_tools::getNosCoreFreq(), nugget_tools::getNosCoreSerial()));
-  citadelClient->Open();
-  EXPECT_TRUE(citadelClient->IsOpen()) << "Unable to connect";
+  client =
+      unique_ptr<nos::NuggetClient>(new nos::NuggetClient(
+          nugget_tools::getNosCoreSerial()));
+  client->Open();
+  EXPECT_TRUE(client->IsOpen()) << "Unable to connect";
 }
 
 void WeaverTest::TearDownTestCase() {
-  citadelClient->Close();
-  citadelClient = unique_ptr<nos::linux::CitadelClient>();
+  client->Close();
+  client = unique_ptr<nos::NuggetClient>();
 }
 
 void WeaverTest::testWrite(uint32_t slot, const uint8_t *key,
@@ -64,7 +64,7 @@ void WeaverTest::testWrite(uint32_t slot, const uint8_t *key,
   request.set_key(key, KEY_SIZE);
   request.set_value(value, KEY_SIZE);
 
-  Weaver service(*citadelClient);
+  Weaver service(*client);
   ASSERT_NO_ERROR(service.Write(request, &response));
 }
 
@@ -76,7 +76,7 @@ void WeaverTest::testRead(uint32_t slot, const uint8_t *key,
   request.set_slot(slot);
   request.set_key(key, KEY_SIZE);
 
-  Weaver service(*citadelClient);
+  Weaver service(*client);
   ASSERT_NO_ERROR(service.Read(request, &response));
   ASSERT_EQ(response.error(), ReadResponse::NONE);
   ASSERT_EQ(response.throttle_msec(), 0);
@@ -92,7 +92,7 @@ void WeaverTest::testEraseValue(uint32_t slot) {
   EraseValueResponse response;
   request.set_slot(slot);
 
-  Weaver service(*citadelClient);
+  Weaver service(*client);
   ASSERT_NO_ERROR(service.EraseValue(request, &response));
 }
 
@@ -104,7 +104,7 @@ void WeaverTest::testReadWrongKey(uint32_t slot, const uint8_t *key,
   request.set_slot(slot);
   request.set_key(key, KEY_SIZE);
 
-  Weaver service(*citadelClient);
+  Weaver service(*client);
   ASSERT_NO_ERROR(service.Read(request, &response));
   ASSERT_EQ(response.error(), ReadResponse::WRONG_KEY);
   ASSERT_EQ(response.throttle_msec(), throttle_sec * 1000);
@@ -122,7 +122,7 @@ void WeaverTest::testReadThrottle(uint32_t slot, const uint8_t *key,
   request.set_slot(slot);
   request.set_key(key, KEY_SIZE);
 
-  Weaver service(*citadelClient);
+  Weaver service(*client);
   ASSERT_NO_ERROR(service.Read(request, &response));
   ASSERT_EQ(response.error(), ReadResponse::THROTTLE);
   ASSERT_LE(response.throttle_msec(), throttle_sec * 1000);
@@ -136,7 +136,7 @@ TEST_F(WeaverTest, GetConfig) {
   GetConfigRequest request;
   GetConfigResponse response;
 
-  Weaver service(*citadelClient);
+  Weaver service(*client);
   ASSERT_NO_ERROR(service.GetConfig(request, &response));
   EXPECT_EQ(response.number_of_slots(), 64);
   EXPECT_EQ(response.key_size(), 16);

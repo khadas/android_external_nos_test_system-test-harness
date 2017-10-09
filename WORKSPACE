@@ -127,11 +127,6 @@ local_repository(
 )
 
 local_repository(
-    name = "nugget_host_linux_citadel_libnos",
-    path = "../../host/linux/citadel/libnos",
-)
-
-local_repository(
     name = "nugget_host_linux_citadel_libnos_datagram",
     path = "../../host/linux/citadel/libnos_datagram",
 )

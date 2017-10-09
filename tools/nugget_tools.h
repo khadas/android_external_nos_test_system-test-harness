@@ -2,15 +2,15 @@
 #define NUGGET_TOOLS_H
 
 #include <string>
-#include <nos/linux/CitadelClient.h>
+#include <nos/debug.h>
+#include <nos/NuggetClient.h>
 
 #define ASSERT_NO_ERROR(code) \
   ASSERT_EQ(code, app_status::APP_SUCCESS) \
-      << code << " is " << nos::NuggetClient::StatusCodeString(code)
+      << code << " is " << nos::StatusCodeString(code)
 
 namespace nugget_tools {
 
-int32_t getNosCoreFreq();
 std::string getNosCoreSerial();
 
 }  // namespace nugget_tools

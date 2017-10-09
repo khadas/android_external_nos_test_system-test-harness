@@ -114,7 +114,7 @@ class TestHarness {
   int GetAhdlc(raw_message* msg, std::chrono::microseconds timeout);
 
   // Needed for libnos / SPI.
-  unique_ptr<nos::linux::CitadelClient> citadelClient;
+  unique_ptr<nos::NuggetClient> client;
   int SendSpi(const raw_message& msg);
   int GetSpi(raw_message* msg, std::chrono::microseconds timeout);
 };

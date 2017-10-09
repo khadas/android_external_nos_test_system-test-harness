@@ -10,6 +10,8 @@
 #include <sstream>
 #include <thread>
 
+#include <application.h>
+
 #include "nugget_tools.h"
 #include "protoapi/control.pb.h"
 #include "protoapi/header.pb.h"
@@ -74,9 +76,9 @@ TestHarness::~TestHarness() {
   if (FLAGS_util_use_ahdlc) {
     close(tty_fd);
   } else {
-    if (citadelClient) {
-      citadelClient->Close();
-      citadelClient = unique_ptr<nos::linux::CitadelClient >();
+    if (client) {
+      client->Close();
+      client = unique_ptr<nos::NuggetClient >();
     }
   }
 }
@@ -137,12 +139,12 @@ int TestHarness::SendAhdlc(const raw_message& msg) {
 }
 
 int TestHarness::SendSpi(const raw_message& msg) {
-  if (!citadelClient) {
-    citadelClient =
-        unique_ptr<nos::linux::CitadelClient>(new nos::linux::CitadelClient(
-            nugget_tools::getNosCoreFreq(), nugget_tools::getNosCoreSerial()));
-    citadelClient->Open();
-    if(!citadelClient->IsOpen()) {
+  if (!client) {
+    client =
+        unique_ptr<nos::NuggetClient>(new nos::NuggetClient(
+            nugget_tools::getNosCoreSerial()));
+    client->Open();
+    if(!client->IsOpen()) {
       FatalError("Unable to connect");
     }
   }
@@ -165,7 +167,7 @@ int TestHarness::SendSpi(const raw_message& msg) {
   }
 
   output_buffer.resize(output_buffer.capacity());
-  return citadelClient->CallApp(APP_ID_PROTOBUF, msg.type, input_buffer,
+  return client->CallApp(APP_ID_PROTOBUF, msg.type, input_buffer,
                                 &output_buffer);
 }
 
