@@ -34,6 +34,11 @@ class WeaverTest: public testing::Test {
                         uint32_t throttle_sec);
  public:
   const size_t KEY_SIZE = 16;
+  const size_t VALUE_SIZE = 16;
+  const uint8_t TEST_KEY[16] = {1, 2, 3, 4, 5, 6, 7, 8,
+                                9, 10, 11, 12, 13, 14, 15, 16};
+  const uint8_t TEST_VALUE[16] = {1, 0, 3, 0, 5, 0, 7, 0,
+                                  0, 10, 0, 12, 0, 14, 0, 16};
 };
 
 std::random_device WeaverTest::random_number_generator;
@@ -62,7 +67,7 @@ void WeaverTest::testWrite(uint32_t slot, const uint8_t *key,
   WriteResponse response;
   request.set_slot(slot);
   request.set_key(key, KEY_SIZE);
-  request.set_value(value, KEY_SIZE);
+  request.set_value(value, VALUE_SIZE);
 
   Weaver service(*client);
   ASSERT_NO_ERROR(service.Write(request, &response));
@@ -143,18 +148,13 @@ TEST_F(WeaverTest, GetConfig) {
   EXPECT_EQ(response.value_size(), 16);
 }
 
-TEST_F(WeaverTest, ReadWriteErase) {
-  const uint8_t TEST_KEY[16] = {1, 2, 3, 4, 5, 6, 7, 8,
-                                9, 10, 11, 12, 13, 14, 15, 16};
-  const uint8_t TEST_VALUE[16] = {1, 0, 3, 0, 5, 0, 7, 0,
-                                  0, 10, 0, 12, 0, 14, 0, 16};
+TEST_F(WeaverTest, WriteReadErase) {
   const uint8_t ZERO_VALUE[16] = {0};
 
   testWrite(WeaverTest::slot, TEST_KEY, TEST_VALUE);
   testRead(WeaverTest::slot, TEST_KEY, TEST_VALUE);
   testEraseValue(WeaverTest::slot);
 
-  // TODO(ascull) Is correct because flash erases to 0xff instead of 0x00?
   testRead(WeaverTest::slot, TEST_KEY, ZERO_VALUE);
 }
 
@@ -168,6 +168,33 @@ TEST_F(WeaverTest, ReadThrottle) {
   testReadWrongKey(WeaverTest::slot, WRONG_KEY, 0);
   testReadWrongKey(WeaverTest::slot, WRONG_KEY, 30);
   testReadThrottle(WeaverTest::slot, WRONG_KEY, 30);
+}
+
+TEST_F(WeaverTest, ReadInvalidSlot) {
+  ReadRequest request;
+  request.set_slot(std::numeric_limits<uint32_t>::max() - 3);
+  request.set_key(TEST_KEY, sizeof(TEST_KEY));
+
+  Weaver service(*client);
+  ASSERT_EQ(service.Read(request, nullptr), APP_ERROR_BOGUS_ARGS);
+}
+
+TEST_F(WeaverTest, WriteInvalidSlot) {
+  WriteRequest request;
+  request.set_slot(std::numeric_limits<uint32_t>::max() - 5);
+  request.set_key(TEST_KEY, sizeof(TEST_KEY));
+  request.set_value(TEST_VALUE, sizeof(TEST_VALUE));
+
+  Weaver service(*client);
+  ASSERT_EQ(service.Write(request, nullptr), APP_ERROR_BOGUS_ARGS);
+}
+
+TEST_F(WeaverTest, EraseValueInvalidSlot) {
+  EraseValueRequest request;
+  request.set_slot(std::numeric_limits<uint32_t>::max() - 8);
+
+  Weaver service(*client);
+  ASSERT_EQ(service.EraseValue(request, nullptr), APP_ERROR_BOGUS_ARGS);
 }
 
 
