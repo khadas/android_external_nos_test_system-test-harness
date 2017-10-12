@@ -16,6 +16,7 @@
 
 using nugget::app::protoapi::AesCbcEncryptTest;
 using nugget::app::protoapi::AesCbcEncryptTestResult;
+using nugget::app::protoapi::APImessageID;
 using nugget::app::protoapi::DcryptError;
 using nugget::app::protoapi::KeySize;
 using nugget::app::protoapi::Notice;

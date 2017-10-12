@@ -17,6 +17,7 @@
 #include "protoapi/header.pb.h"
 #include "src/lib/inc/crc_16.h"
 
+using nugget::app::protoapi::APImessageID;
 using nugget::app::protoapi::ControlRequest;
 using nugget::app::protoapi::ControlRequestType;
 using nugget::app::protoapi::Notice;
