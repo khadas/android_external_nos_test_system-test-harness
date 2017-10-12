@@ -8,9 +8,9 @@
 #include "gtest/gtest.h"
 #include "gflags/gflags.h"
 #include "openssl/aes.h"
-#include "protoapi/control.pb.h"
-#include "protoapi/header.pb.h"
-#include "protoapi/testing_api.pb.h"
+#include "nugget/app/protoapi/control.pb.h"
+#include "nugget/app/protoapi/header.pb.h"
+#include "nugget/app/protoapi/testing_api.pb.h"
 #include "src/util.h"
 
 

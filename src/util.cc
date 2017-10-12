@@ -13,8 +13,8 @@
 #include <application.h>
 
 #include "nugget_tools.h"
-#include "protoapi/control.pb.h"
-#include "protoapi/header.pb.h"
+#include "nugget/app/protoapi/control.pb.h"
+#include "nugget/app/protoapi/header.pb.h"
 #include "src/lib/inc/crc_16.h"
 
 using nugget::app::protoapi::APImessageID;

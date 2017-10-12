@@ -127,13 +127,13 @@ local_repository(
 )
 
 local_repository(
-    name = "nugget_host_linux_citadel_libnos_datagram",
-    path = "../../host/linux/citadel/libnos_datagram",
+    name = "nugget_host_generic_nugget_proto",
+    path = "../../host/generic/nugget/proto",
 )
 
 local_repository(
-    name = "nugget_test_systemtestharness_proto",
-    path = "proto",
+    name = "nugget_host_linux_citadel_libnos_datagram",
+    path = "../../host/linux/citadel/libnos_datagram",
 )
 
 local_repository(
