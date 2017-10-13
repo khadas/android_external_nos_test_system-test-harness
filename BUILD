@@ -16,6 +16,7 @@ cc_binary(
     ],
     copts = COPTS,
     deps = [
+        ":km_hdrs",
         ":util",
         "@boringssl//:ssl",
         "@com_github_gflags_gflags//:gflags",
@@ -66,5 +67,12 @@ cc_library(
         "@nugget_host_generic_nugget_proto//:nugget_app_protoapi_testing_api_cc_proto",
         "@nugget_test_systemtestharness_tools//:nugget_tools",
         "@nugget_thirdparty_ahdlc//:ahdlc",
+    ],
+)
+
+cc_library(
+    name = "km_hdrs",
+    hdrs = [
+        "src/include/keymaster/hal/3.0/types.h",
     ],
 )
