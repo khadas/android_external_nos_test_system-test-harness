@@ -60,7 +60,6 @@ void WeaverTest::TearDownTestCase() {
 
 void WeaverTest::testWrite(uint32_t slot, const uint8_t *key,
                            const uint8_t *value) {
-  cout << "testWrite " << slot << "\n";
   WriteRequest request;
   WriteResponse response;
   request.set_slot(slot);
@@ -73,7 +72,6 @@ void WeaverTest::testWrite(uint32_t slot, const uint8_t *key,
 
 void WeaverTest::testRead(uint32_t slot, const uint8_t *key,
                           const uint8_t *value) {
-  cout << "testRead " << slot << "\n";
   ReadRequest request;
   ReadResponse response;
   request.set_slot(slot);
@@ -90,7 +88,6 @@ void WeaverTest::testRead(uint32_t slot, const uint8_t *key,
 }
 
 void WeaverTest::testEraseValue(uint32_t slot) {
-  cout << "testEraseValue " << slot << "\n";
   EraseValueRequest request;
   EraseValueResponse response;
   request.set_slot(slot);
@@ -101,7 +98,6 @@ void WeaverTest::testEraseValue(uint32_t slot) {
 
 void WeaverTest::testReadWrongKey(uint32_t slot, const uint8_t *key,
                                   uint32_t throttle_sec) {
-  cout << "testReadWrongKey " << slot << "\n";
   ReadRequest request;
   ReadResponse response;
   request.set_slot(slot);
@@ -119,7 +115,6 @@ void WeaverTest::testReadWrongKey(uint32_t slot, const uint8_t *key,
 
 void WeaverTest::testReadThrottle(uint32_t slot, const uint8_t *key,
                                   uint32_t throttle_sec) {
-  cout << "testReadThrottle " << slot << "\n";
   ReadRequest request;
   ReadResponse response;
   request.set_slot(slot);

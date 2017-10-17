@@ -13,7 +13,6 @@
 #endif  // CHIP_FLASH_BANK_SIZE
 #include <app_nugget.h>
 
-using std::cout;
 using std::string;
 using std::vector;
 using std::unique_ptr;
@@ -54,8 +53,6 @@ TEST_F(NuggetCoreTest, GetVersionStringTest) {
   ASSERT_NO_ERROR(NuggetCoreTest::client->CallApp(
       APP_ID_NUGGET, NUGGET_PARAM_VERSION, input_buffer, &output_buffer));
   ASSERT_GT(output_buffer.size(), 0u);
-  cout << string((char*) output_buffer.data(), output_buffer.size()) <<"\n";
-  cout.flush();
 }
 
 // ./test_app --id 0 -p beef a b c d e f

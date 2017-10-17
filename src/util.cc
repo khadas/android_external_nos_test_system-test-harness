@@ -38,7 +38,7 @@ using std::chrono::microseconds;
 
 namespace test_harness {
 
-string find_uart(){
+string find_uart(int verbosity){
   constexpr char dir_path[] = "/dev/";
   auto dir = opendir(dir_path);
   if (!dir) {
@@ -57,33 +57,36 @@ string find_uart(){
     }
   }
 
-  std::cout << "USING: " << return_value << std::endl;
+  if (verbosity >= TestHarness::VerbosityLevels::INFO) {
+    std::cout << "USING: " << return_value << std::endl;
+  }
 
   closedir(dir);
   return return_value;
 }
 
-TestHarness::TestHarness() : verbosity(INFO),
+TestHarness::TestHarness() : verbosity(ERROR),
                              output_buffer(PROTO_BUFFER_MAX_LEN, 0),
                              input_buffer(PROTO_BUFFER_MAX_LEN, 0), tty_fd(-1) {
 #ifdef CONFIG_NO_UART
   Init(nullptr);
 #else
-  string path = find_uart();
+  string path = find_uart(verbosity);
   Init(path.c_str());
 #endif  // CONFIG_NO_UART
 }
 
 TestHarness::TestHarness(const char* path) :
-    verbosity(INFO), output_buffer(PROTO_BUFFER_MAX_LEN, 0),
+    verbosity(ERROR), output_buffer(PROTO_BUFFER_MAX_LEN, 0),
     input_buffer(PROTO_BUFFER_MAX_LEN, 0), tty_fd(-1) {
   Init(path);
 }
 
 TestHarness::~TestHarness() {
-  std::cout << "CLOSING TEST HARNESS" << std::endl;
-
 #ifndef CONFIG_NO_UART
+  if (verbosity >= INFO) {
+    std::cout << "CLOSING TEST HARNESS" << std::endl;
+  }
   if (FLAGS_util_use_ahdlc) {
     close(tty_fd);
   }

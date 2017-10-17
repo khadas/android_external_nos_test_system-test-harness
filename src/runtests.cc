@@ -34,6 +34,7 @@ using nugget::app::protoapi::TrngTestResult;
 using std::cout;
 using std::vector;
 using std::unique_ptr;
+using test_harness::TestHarness;
 
 #define ASSERT_NO_TH_ERROR(code) \
   ASSERT_EQ(code, test_harness::error_codes::NO_ERROR) \
@@ -66,16 +67,15 @@ class NuggetOsTest: public testing::Test {
   static void TearDownTestCase();
 
  public:
-  static unique_ptr<test_harness::TestHarness> harness;
+  static unique_ptr<TestHarness> harness;
   static std::random_device random_number_generator;
 };
 
-unique_ptr<test_harness::TestHarness> NuggetOsTest::harness;
+unique_ptr<TestHarness> NuggetOsTest::harness;
 std::random_device NuggetOsTest::random_number_generator;
 
 void NuggetOsTest::SetUpTestCase() {
-  harness = unique_ptr<test_harness::TestHarness>(
-      new test_harness::TestHarness());
+  harness = unique_ptr<TestHarness>(new TestHarness());
 
 #ifndef CONFIG_NO_UART
   if (!harness->UsingSpi()) {
@@ -92,7 +92,7 @@ void NuggetOsTest::TearDownTestCase() {
     EXPECT_TRUE(harness->SwitchFromProtoApiToConsole(NULL));
   }
 #endif  // CONFIG_NO_UART
-  harness = unique_ptr<test_harness::TestHarness>();
+  harness = unique_ptr<TestHarness>();
 }
 
 TEST_F(NuggetOsTest, NoticePing) {
@@ -101,34 +101,46 @@ TEST_F(NuggetOsTest, NoticePing) {
   Notice pong_msg;
 
   ASSERT_NO_TH_ERROR(harness->SendProto(APImessageID::NOTICE, ping_msg));
-  cout << ping_msg.DebugString();
+  if (harness->getVerbosity() >= TestHarness::VerbosityLevels::INFO) {
+    cout << ping_msg.DebugString();
+  }
   test_harness::raw_message receive_msg;
   ASSERT_NO_TH_ERROR(harness->GetData(&receive_msg, 4096 * BYTE_TIME));
   ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
   ASSERT_TRUE(pong_msg.ParseFromArray(
       reinterpret_cast<char *>(receive_msg.data), receive_msg.data_len));
-  cout << pong_msg.DebugString() <<std::endl;
+  if (harness->getVerbosity() >= TestHarness::VerbosityLevels::INFO) {
+    cout << pong_msg.DebugString() << std::endl;
+  }
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 
   ASSERT_NO_TH_ERROR(harness->SendProto(APImessageID::NOTICE, ping_msg));
-  cout << ping_msg.DebugString();
+  if (harness->getVerbosity() >= TestHarness::VerbosityLevels::INFO) {
+    cout << ping_msg.DebugString();
+  }
   ASSERT_NO_TH_ERROR(harness->GetData(&receive_msg, 4096 * BYTE_TIME));
   ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
   ASSERT_TRUE(pong_msg.ParseFromArray(
       reinterpret_cast<char *>(receive_msg.data), receive_msg.data_len));
-  cout << pong_msg.DebugString() <<std::endl;
+  if (harness->getVerbosity() >= TestHarness::VerbosityLevels::INFO) {
+    cout << pong_msg.DebugString() << std::endl;
+  }
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 
   ASSERT_NO_TH_ERROR(harness->SendProto(APImessageID::NOTICE, ping_msg));
-  cout << ping_msg.DebugString();
+  if (harness->getVerbosity() >= TestHarness::VerbosityLevels::INFO) {
+    cout << ping_msg.DebugString();
+  }
   ASSERT_NO_TH_ERROR(harness->GetData(&receive_msg, 4096 * BYTE_TIME));
   ASSERT_MSG_TYPE(receive_msg, APImessageID::NOTICE);
   pong_msg.set_notice_code(NoticeCode::PING);
   ASSERT_TRUE(pong_msg.ParseFromArray(
       reinterpret_cast<char *>(receive_msg.data), receive_msg.data_len));
-  cout << pong_msg.DebugString() <<std::endl;
+  if (harness->getVerbosity() >= TestHarness::VerbosityLevels::INFO) {
+    cout << pong_msg.DebugString() << std::endl;
+  }
   EXPECT_EQ(pong_msg.notice_code(), NoticeCode::PONG);
 }
 
@@ -147,7 +159,9 @@ TEST_F(NuggetOsTest, InvalidMessageType) {
   Notice notice_msg;
   ASSERT_TRUE(notice_msg.ParseFromArray(reinterpret_cast<char *>(msg.data),
                                         msg.data_len));
-  cout << notice_msg.DebugString() <<std::endl;
+  if (harness->getVerbosity() >= TestHarness::VerbosityLevels::INFO) {
+    cout << notice_msg.DebugString() << std::endl;
+  }
   EXPECT_EQ(notice_msg.notice_code(), NoticeCode::UNRECOGNIZED_MESSAGE);
 }
 
@@ -193,8 +207,10 @@ TEST_F(NuggetOsTest, AesCbc) {
   const size_t number_of_blocks = 3;
 
   for (auto key_size : {KeySize::s128b, KeySize::s192b, KeySize::s256b}) {
-    cout << "Testing with a key size of: " << std::dec << (key_size * 8)
-         <<std::endl;
+    if (harness->getVerbosity() >= TestHarness::VerbosityLevels::INFO) {
+      cout << "Testing with a key size of: " << std::dec << (key_size * 8)
+           << std::endl;
+    }
     AesCbcEncryptTest request;
     request.set_key_size(key_size);
     request.set_number_of_blocks(number_of_blocks);
@@ -305,8 +321,10 @@ TEST_F(NuggetOsTest, Trng) {
     kl_divergence += count * log2(count * ratio);
   }
   kl_divergence *= ratio;
-  cout << "K.L. Divergence: " << kl_divergence <<"\n";
-  cout.flush();
+  if (harness->getVerbosity() >= TestHarness::VerbosityLevels::INFO) {
+    cout << "K.L. Divergence: " << kl_divergence << "\n";
+    cout.flush();
+  }
   ASSERT_LT(kl_divergence, 15.0);
 }
 
