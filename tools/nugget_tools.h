@@ -1,6 +1,7 @@
 #ifndef NUGGET_TOOLS_H
 #define NUGGET_TOOLS_H
 
+#include <application.h>
 #include <nos/debug.h>
 #include <nos/NuggetClient.h>
 

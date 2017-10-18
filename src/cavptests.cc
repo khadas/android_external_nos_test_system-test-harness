@@ -4,14 +4,15 @@
 
 #include "gtest/gtest.h"
 #include "gflags/gflags.h"
-#include "protoapi/control.pb.h"
-#include "protoapi/header.pb.h"
-#include "protoapi/testing_api.pb.h"
+#include "nugget/app/protoapi/control.pb.h"
+#include "nugget/app/protoapi/header.pb.h"
+#include "nugget/app/protoapi/testing_api.pb.h"
+#include "src/macros.h"
 #include "src/util.h"
-
 
 using nugget::app::protoapi::AesGcmEncryptTest;
 using nugget::app::protoapi::AesGcmEncryptTestResult;
+using nugget::app::protoapi::APImessageID;
 using nugget::app::protoapi::DcryptError;
 using nugget::app::protoapi::Notice;
 using nugget::app::protoapi::NoticeCode;
@@ -22,10 +23,6 @@ using std::stringstream;
 using std::unique_ptr;
 
 DEFINE_bool(nos_test_dump_protos, false, "Dump binary protobufs to a file.");
-
-#define ASSERT_NO_ERROR(code) \
-  ASSERT_EQ(code, test_harness::error_codes::NO_ERROR) \
-      << code << " is " << test_harness::error_codes_name(code)
 
 #define ASSERT_MSG_TYPE(msg, type_) \
 do{if(type_ != APImessageID::NOTICE && msg.type == APImessageID::NOTICE){ \
@@ -79,10 +76,7 @@ void NuggetOsTest::TearDownTestCase() {
   harness = unique_ptr<test_harness::TestHarness>();
 }
 
-#include "test-data/NIST-CAVP/aes-gcm-cavp.h"
-#define ARRAYSIZE(a) \
-  ((sizeof(a) / sizeof(*(a))) / \
-   static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))
+#include "src/test-data/NIST-CAVP/aes-gcm-cavp.h"
 
 TEST_F(NuggetOsTest, AesGcm) {
   const int verbosity = harness->getVerbosity();
