@@ -16,7 +16,7 @@ cc_binary(
     ],
     copts = COPTS,
     deps = [
-        ":km_hdrs",
+        ":km_test_lib",
         ":util",
         "@boringssl//:ssl",
         "@com_github_gflags_gflags//:gflags",
@@ -58,6 +58,7 @@ cc_library(
         "src/util.cc",
     ],
     hdrs = [
+        "src/macros.h",
         "src/util.h",
     ],
     copts = COPTS,
@@ -71,8 +72,12 @@ cc_library(
 )
 
 cc_library(
-    name = "km_hdrs",
+    name = "km_test_lib",
+    srcs = [
+        "src/test-data/test-keys/rsa.cc",
+    ],
     hdrs = [
+        "src/test-data/test-keys/rsa.h",
         "src/include/keymaster/hal/3.0/types.h",
     ],
 )
