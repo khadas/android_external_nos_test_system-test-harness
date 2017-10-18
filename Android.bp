@@ -29,9 +29,11 @@ cc_binary {
         "src/keymaster_tests.cc",
         "src/nugget_core_tests.cc",
         "src/runtests.cc",
+        "src/test-data/test-keys/rsa.cc",
         "src/util.cc",
         "src/weaver_tests.cc",
     ],
+    include_dirs: ["."],
     header_libs: [
         "nos_headers",
     ],

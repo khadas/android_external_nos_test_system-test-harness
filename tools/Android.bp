@@ -19,6 +19,9 @@ cc_library {
     srcs: [
         "nugget_tools.cc",
     ],
+    header_libs: [
+        "nos_headers",
+    ],
     shared_libs: [
         "libnos",
         "libnos_client_citadel",
