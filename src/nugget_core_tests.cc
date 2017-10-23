@@ -7,10 +7,6 @@
 #include "nugget_tools.h"
 #include "util.h"
 
-// TODO(allenwebb) remove this when libnos no longer needs it to be predefined.
-#ifndef CHIP_FLASH_BANK_SIZE
-#define CHIP_FLASH_BANK_SIZE 2048
-#endif  // CHIP_FLASH_BANK_SIZE
 #include <app_nugget.h>
 
 using std::string;
