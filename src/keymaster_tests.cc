@@ -7,6 +7,10 @@
 #include "src/include/keymaster/hal/3.0/types.h"
 #include "src/test-data/test-keys/rsa.h"
 
+#include "openssl/bn.h"
+#include "openssl/ec_key.h"
+#include "openssl/nid.h"
+
 using std::cout;
 using std::string;
 using std::unique_ptr;
@@ -27,15 +31,15 @@ class KeymasterTest: public testing::Test {
   static void SetUpTestCase();
   static void TearDownTestCase();
 
-  void initRequest(ImportKeyRequest *request, Algorithm alg) {
+  void initRSARequest(ImportKeyRequest *request, Algorithm alg) {
     KeyParameters *params = request->mutable_params();
     KeyParameter *param = params->add_params();
     param->set_tag((uint32_t)Tag::ALGORITHM);
     param->set_integer((uint32_t)alg);
   }
 
-  void initRequest(ImportKeyRequest *request, Algorithm alg, int key_size) {
-    initRequest(request, alg);
+  void initRSARequest(ImportKeyRequest *request, Algorithm alg, int key_size) {
+    initRSARequest(request, alg);
 
     if (key_size >= 0) {
       KeyParameters *params = request->mutable_params();
@@ -45,9 +49,9 @@ class KeymasterTest: public testing::Test {
     }
   }
 
-  void initRequest(ImportKeyRequest *request, Algorithm alg, int key_size,
+  void initRSARequest(ImportKeyRequest *request, Algorithm alg, int key_size,
                    int public_exponent_tag) {
-    initRequest(request, alg, key_size);
+    initRSARequest(request, alg, key_size);
 
     if (public_exponent_tag >= 0) {
       KeyParameters *params = request->mutable_params();
@@ -57,10 +61,10 @@ class KeymasterTest: public testing::Test {
     }
   }
 
-  void initRequest(ImportKeyRequest *request, Algorithm alg, int key_size,
+  void initRSARequest(ImportKeyRequest *request, Algorithm alg, int key_size,
                    int public_exponent_tag, uint32_t public_exponent,
                    const string& d, const string& n) {
-    initRequest(request, alg, key_size, public_exponent_tag);
+    initRSARequest(request, alg, key_size, public_exponent_tag);
 
     request->mutable_rsa()->set_e(public_exponent);
     request->mutable_rsa()->set_d(d);
@@ -84,6 +88,8 @@ void KeymasterTest::TearDownTestCase() {
   client = unique_ptr<nos::NuggetClient>();
 }
 
+// TODO: refactor into import key tests.
+
 // Failure cases.
 TEST_F(KeymasterTest, ImportKeyAlgorithmMissingFails) {
   ImportKeyRequest request;
@@ -104,11 +110,13 @@ TEST_F(KeymasterTest, ImportKeyAlgorithmMissingFails) {
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
 }
 
+// RSA
+
 TEST_F(KeymasterTest, ImportKeyRSAInvalidKeySizeFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
-  initRequest(&request, Algorithm::RSA, 256, 3);
+  initRSARequest(&request, Algorithm::RSA, 256, 3);
 
   ASSERT_NO_ERROR(service->ImportKey(request, &response));
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::UNSUPPORTED_KEY_SIZE);
@@ -119,8 +127,8 @@ TEST_F(KeymasterTest, ImportKeyRSAInvalidPublicExponentFails) {
   ImportKeyResponse response;
 
   // Unsupported exponent
-  initRequest(&request, Algorithm::RSA, 512, 2, 2,
-              string(64, '\0'), string(64, '\0'));
+  initRSARequest(&request, Algorithm::RSA, 512, 2, 2,
+                 string(64, '\0'), string(64, '\0'));
 
   ASSERT_NO_ERROR(service->ImportKey(request, &response));
   EXPECT_EQ((ErrorCode)response.error_code(),
@@ -132,8 +140,8 @@ TEST_F(KeymasterTest, ImportKeyRSAKeySizeTagMisatchNFails) {
   ImportKeyResponse response;
 
   // N does not match KEY_SIZE.
-  initRequest(&request, Algorithm::RSA, 512, 3, 3,
-              string(64, '\0'), string(63, '\0'));
+  initRSARequest(&request, Algorithm::RSA, 512, 3, 3,
+                 string(64, '\0'), string(63, '\0'));
   ASSERT_NO_ERROR(service->ImportKey(request, &response));
   EXPECT_EQ((ErrorCode)response.error_code(),
             ErrorCode::IMPORT_PARAMETER_MISMATCH);
@@ -144,8 +152,8 @@ TEST_F(KeymasterTest, ImportKeyRSAKeySizeTagMisatchDFails) {
   ImportKeyResponse response;
 
   // D does not match KEY_SIZE.
-  initRequest(&request, Algorithm::RSA, 512, 3, 3,
-              string(63, '\0'), string(64, '\0'));
+  initRSARequest(&request, Algorithm::RSA, 512, 3, 3,
+                 string(63, '\0'), string(64, '\0'));
   ASSERT_NO_ERROR(service->ImportKey(request, &response));
   EXPECT_EQ((ErrorCode)response.error_code(),
             ErrorCode::IMPORT_PARAMETER_MISMATCH);
@@ -156,8 +164,8 @@ TEST_F(KeymasterTest, ImportKeyRSAPublicExponentTagMisatchFails) {
   ImportKeyResponse response;
 
   // e does not match PUBLIC_EXPONENT tag.
-  initRequest(&request, Algorithm::RSA, 512, 3, 2,
-              string(64, '\0'), string(64, '\0'));
+  initRSARequest(&request, Algorithm::RSA, 512, 3, 2,
+                 string(64, '\0'), string(64, '\0'));
   ASSERT_NO_ERROR(service->ImportKey(request, &response));
   EXPECT_EQ((ErrorCode)response.error_code(),
             ErrorCode::IMPORT_PARAMETER_MISMATCH);
@@ -170,7 +178,7 @@ TEST_F(KeymasterTest, ImportKeyRSA1024BadEFails) {
   // Mis-matched e.
   const string d((const char *)RSA_1024_D, sizeof(RSA_1024_D));
   const string N((const char *)RSA_1024_N, sizeof(RSA_1024_N));
-  initRequest(&request, Algorithm::RSA, 1024, 3, 3, d, N);
+  initRSARequest(&request, Algorithm::RSA, 1024, 3, 3, d, N);
 
   ASSERT_NO_ERROR(service->ImportKey(request, &response));
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
@@ -183,7 +191,7 @@ TEST_F(KeymasterTest, ImportKeyRSA1024BadDFails) {
   const string d(string("\x01") +  /* Twiddle LSB of D. */
                  string((const char *)RSA_1024_D, sizeof(RSA_1024_D) - 1));
   const string N((const char *)RSA_1024_N, sizeof(RSA_1024_N));
-  initRequest(&request, Algorithm::RSA, 1024, 65537, 65537, d, N);
+  initRSARequest(&request, Algorithm::RSA, 1024, 65537, 65537, d, N);
 
   ASSERT_NO_ERROR(service->ImportKey(request, &response));
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
@@ -196,7 +204,7 @@ TEST_F(KeymasterTest, ImportKeyRSA1024BadNFails) {
   const string d((const char *)RSA_1024_D, sizeof(RSA_1024_D));
   const string N(string("\x01") +  /* Twiddle LSB of N. */
                  string((const char *)RSA_1024_N, sizeof(RSA_1024_N) - 1));
-  initRequest(&request, Algorithm::RSA, 1024, 65537, 65537, d, N);
+  initRSARequest(&request, Algorithm::RSA, 1024, 65537, 65537, d, N);
 
   ASSERT_NO_ERROR(service->ImportKey(request, &response));
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
@@ -206,7 +214,7 @@ TEST_F(KeymasterTest, ImportKeyRSASuccess) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
-  initRequest(&request, Algorithm::RSA);
+  initRSARequest(&request, Algorithm::RSA);
   KeyParameters *params = request.mutable_params();
   KeyParameter *param = params->add_params();
   for (size_t i = 0; i < ARRAYSIZE(TEST_RSA_KEYS); i++) {
@@ -228,16 +236,138 @@ TEST_F(KeymasterTest, ImportKeyRSA1024OptionalParamsAbsentSuccess) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
-  initRequest(&request, Algorithm::RSA, -1, -1, 65537,
-              string((const char *)RSA_1024_D, sizeof(RSA_1024_D)),
-              string((const char *)RSA_1024_N, sizeof(RSA_1024_N)));
+  initRSARequest(&request, Algorithm::RSA, -1, -1, 65537,
+                 string((const char *)RSA_1024_D, sizeof(RSA_1024_D)),
+                 string((const char *)RSA_1024_N, sizeof(RSA_1024_N)));
 
   ASSERT_NO_ERROR(service->ImportKey(request, &response));
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::OK);
 }
 
-// TODO: import bad keys (n, e, d) mismatch cases.
+// EC
 
-// TODO: import key success cases
+TEST_F(KeymasterTest, ImportKeyECMissingCurveIdTagFails) {
+  ImportKeyRequest request;
+  ImportKeyResponse response;
+
+  KeyParameters *params = request.mutable_params();
+  KeyParameter *param = params->add_params();
+  param->set_tag((uint32_t)Tag::ALGORITHM);
+  param->set_integer((uint32_t)Algorithm::EC);
+
+  ASSERT_NO_ERROR(service->ImportKey(request, &response));
+  EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
+}
+
+TEST_F(KeymasterTest, ImportKeyECMisMatchedCurveIdTagFails) {
+  ImportKeyRequest request;
+  ImportKeyResponse response;
+
+  KeyParameters *params = request.mutable_params();
+  KeyParameter *param = params->add_params();
+  param->set_tag((uint32_t)Tag::ALGORITHM);
+  param->set_integer((uint32_t)Algorithm::EC);
+
+  param = params->add_params();
+  param->set_tag((uint32_t)Tag::EC_CURVE);
+  param->set_integer((uint32_t)EcCurve::P_224);
+
+  request.mutable_ec()->set_curve_id((uint32_t)EcCurve::P_256);
+
+  ASSERT_NO_ERROR(service->ImportKey(request, &response));
+  EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
+}
+
+// TODO: tests for P224.
+
+TEST_F(KeymasterTest, ImportKeyECMisMatchedP256KeySizeFails) {
+  ImportKeyRequest request;
+  ImportKeyResponse response;
+
+  KeyParameters *params = request.mutable_params();
+  KeyParameter *param = params->add_params();
+  param->set_tag((uint32_t)Tag::ALGORITHM);
+  param->set_integer((uint32_t)Algorithm::EC);
+
+  param = params->add_params();
+  param->set_tag((uint32_t)Tag::EC_CURVE);
+  param->set_integer((uint32_t)EcCurve::P_256);
+
+  request.mutable_ec()->set_curve_id((uint32_t)EcCurve::P_256);
+  request.mutable_ec()->set_d(string((224 >> 3) - 1, '\0'));
+  request.mutable_ec()->set_x(string((224 >> 3), '\0'));
+  request.mutable_ec()->set_y(string((224 >> 3), '\0'));
+
+  ASSERT_NO_ERROR(service->ImportKey(request, &response));
+  EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
+}
+
+// TODO: bad key tests.  invalid d, {x,y} not on curve, d, xy mismatched.
+TEST_F(KeymasterTest, ImportKeyECP256BadKeyFails) {
+  ImportKeyRequest request;
+  ImportKeyResponse response;
+
+  KeyParameters *params = request.mutable_params();
+  KeyParameter *param = params->add_params();
+  param->set_tag((uint32_t)Tag::ALGORITHM);
+  param->set_integer((uint32_t)Algorithm::EC);
+
+  param = params->add_params();
+  param->set_tag((uint32_t)Tag::EC_CURVE);
+  param->set_integer((uint32_t)EcCurve::P_256);
+
+  request.mutable_ec()->set_curve_id((uint32_t)EcCurve::P_256);
+  request.mutable_ec()->set_d(string((224 >> 3), '\0'));
+  request.mutable_ec()->set_x(string((224 >> 3), '\0'));
+  request.mutable_ec()->set_y(string((224 >> 3), '\0'));
+
+  ASSERT_NO_ERROR(service->ImportKey(request, &response));
+  EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
+}
+
+TEST_F (KeymasterTest, ImportECP256KeySuccess) {
+  // Generate an EC key.
+  // TODO: just hardcode a test key.
+  bssl::UniquePtr<EC_KEY> ec(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+  EXPECT_EQ(EC_KEY_generate_key(ec.get()), 1);
+  const EC_GROUP *group = EC_KEY_get0_group(ec.get());
+  const BIGNUM *d = EC_KEY_get0_private_key(ec.get());
+  const EC_POINT *point = EC_KEY_get0_public_key(ec.get());
+  bssl::UniquePtr<BIGNUM> x(BN_new());
+  bssl::UniquePtr<BIGNUM> y(BN_new());
+  EXPECT_EQ(EC_POINT_get_affine_coordinates_GFp(
+      group, point, x.get(), y.get(), NULL), 1);
+
+  // Turn d, x, y into binary strings.
+  std::unique_ptr<uint8_t []> dstr(new uint8_t[BN_num_bytes(d)]);
+  std::unique_ptr<uint8_t []> xstr(new uint8_t[BN_num_bytes(x.get())]);
+  std::unique_ptr<uint8_t []> ystr(new uint8_t[BN_num_bytes(y.get())]);
+
+  EXPECT_EQ(BN_bn2le_padded(dstr.get(), BN_num_bytes(d), d), 1);
+  EXPECT_EQ(BN_bn2le_padded(xstr.get(), BN_num_bytes(x.get()), x.get()), 1);
+  EXPECT_EQ(BN_bn2le_padded(ystr.get(), BN_num_bytes(y.get()), y.get()), 1);
+
+  ImportKeyRequest request;
+  ImportKeyResponse response;
+
+  KeyParameters *params = request.mutable_params();
+  KeyParameter *param = params->add_params();
+  param->set_tag((uint32_t)Tag::ALGORITHM);
+  param->set_integer((uint32_t)Algorithm::EC);
+
+  param = params->add_params();
+  param->set_tag((uint32_t)Tag::EC_CURVE);
+  param->set_integer((uint32_t)EcCurve::P_256);
+
+  request.mutable_ec()->set_curve_id((uint32_t)EcCurve::P_256);
+  request.mutable_ec()->set_d(dstr.get(), BN_num_bytes(d));
+  request.mutable_ec()->set_x(xstr.get(), BN_num_bytes(x.get()));
+  request.mutable_ec()->set_y(ystr.get(), BN_num_bytes(y.get()));
+
+  ASSERT_NO_ERROR(service->ImportKey(request, &response));
+  EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::OK);
+}
+
+// TODO: tests for P384, P521.
 
 }  // namespace
