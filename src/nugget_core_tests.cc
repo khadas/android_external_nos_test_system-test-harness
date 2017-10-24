@@ -97,8 +97,7 @@ TEST_F(NuggetCoreTest, SoftRebootTest) {
   ASSERT_LT(post_reboot, CLOCK_THRESHOLD);
 }
 
-// TODO(b/65930573) enable this test after it no longer breaks libnos.
-TEST_F(NuggetCoreTest, DISABLED_HardRebootTest) {
+TEST_F(NuggetCoreTest, HardRebootTest) {
   test_harness::TestHarness harness;
 
   input_buffer.resize(1);
