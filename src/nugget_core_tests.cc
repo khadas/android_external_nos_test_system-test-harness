@@ -71,9 +71,9 @@ TEST_F(NuggetCoreTest, ReverseStringTest) {
 }
 
 // Time to wait until expecting citadel to be ready after reboot request.
-const auto REBOOT_DELAY = std::chrono::microseconds(2250000);
+const auto REBOOT_DELAY = std::chrono::microseconds(30000);
 // Threshold for the number of clock cycles returned by citadel after reboot.
-const uint32_t CLOCK_THRESHOLD = 525000;
+const uint32_t CLOCK_THRESHOLD = 200000;
 
 TEST_F(NuggetCoreTest, SoftRebootTest) {
   test_harness::TestHarness harness;
