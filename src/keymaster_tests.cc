@@ -57,7 +57,7 @@ class KeymasterTest: public testing::Test {
       KeyParameters *params = request->mutable_params();
       KeyParameter *param = params->add_params();
       param->set_tag((uint32_t)Tag::RSA_PUBLIC_EXPONENT);
-      param->set_integer(public_exponent_tag);
+      param->set_long_integer(public_exponent_tag);
     }
   }
 
@@ -104,7 +104,7 @@ TEST_F(KeymasterTest, ImportKeyAlgorithmMissingFails) {
 
   param = params->add_params();
   param->set_tag((uint32_t)Tag::RSA_PUBLIC_EXPONENT);
-  param->set_integer(3);
+  param->set_long_integer(3);
 
   ASSERT_NO_ERROR(service->ImportKey(request, &response));
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
@@ -219,7 +219,7 @@ TEST_F(KeymasterTest, ImportKeyRSASuccess) {
   KeyParameter *param = params->add_params();
   for (size_t i = 0; i < ARRAYSIZE(TEST_RSA_KEYS); i++) {
     param->set_tag((uint32_t)Tag::RSA_PUBLIC_EXPONENT);
-    param->set_integer(TEST_RSA_KEYS[i].e);
+    param->set_long_integer(TEST_RSA_KEYS[i].e);
 
     request.mutable_rsa()->set_e(TEST_RSA_KEYS[i].e);
     request.mutable_rsa()->set_d(TEST_RSA_KEYS[i].d, TEST_RSA_KEYS[i].size);
