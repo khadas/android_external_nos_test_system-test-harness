@@ -1,6 +1,7 @@
 #ifndef NUGGET_TOOLS_H
 #define NUGGET_TOOLS_H
 
+#include <app_nugget.h>
 #include <application.h>
 #include <nos/debug.h>
 #include <nos/NuggetClient.h>
@@ -15,6 +16,8 @@
 namespace nugget_tools {
 
 std::unique_ptr<nos::NuggetClient> MakeNuggetClient();
+
+bool RebootNugget(nos::NuggetClient *client, uint8_t type);
 
 }  // namespace nugget_tools
 

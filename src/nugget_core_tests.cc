@@ -1,13 +1,14 @@
 
+#include <app_nugget.h>
+#include <nos/NuggetClient.h>
+
 #include <chrono>
 #include <memory>
-#include <nos/NuggetClient.h>
 
 #include "gtest/gtest.h"
 #include "nugget_tools.h"
 #include "util.h"
 
-#include <app_nugget.h>
 
 using std::string;
 using std::vector;
@@ -70,54 +71,12 @@ TEST_F(NuggetCoreTest, ReverseStringTest) {
   }
 }
 
-// Time to wait until expecting citadel to be ready after reboot request.
-const auto REBOOT_DELAY = std::chrono::microseconds(30000);
-// Threshold for the number of clock cycles returned by citadel after reboot.
-const uint32_t CLOCK_THRESHOLD = 200000;
-
 TEST_F(NuggetCoreTest, SoftRebootTest) {
-  test_harness::TestHarness harness;
-
-  input_buffer.resize(1);
-  input_buffer[0] = 0;  // 0 = soft reboot, 1 = hard reboot
-  ASSERT_NO_ERROR(NuggetCoreTest::client->CallApp(
-      APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer, &output_buffer));
-  ASSERT_EQ(output_buffer.size(), 0u);
-
-  NuggetCoreTest::client->Close();
-  harness.ReadUntil(REBOOT_DELAY);
-  NuggetCoreTest::client->Open();
-  ASSERT_TRUE(NuggetCoreTest::client->IsOpen());
-
-  ASSERT_NO_ERROR(NuggetCoreTest::client->CallApp(
-      APP_ID_NUGGET, NUGGET_PARAM_CYCLES_SINCE_BOOT, input_buffer,
-      &output_buffer));
-  ASSERT_EQ(output_buffer.size(), sizeof(uint32_t));
-  uint32_t post_reboot = *reinterpret_cast<uint32_t *>(output_buffer.data());
-  ASSERT_LT(post_reboot, CLOCK_THRESHOLD);
+  ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_SOFT));
 }
 
-// TODO(b/65930573) enable this test after it no longer breaks libnos.
-TEST_F(NuggetCoreTest, DISABLED_HardRebootTest) {
-  test_harness::TestHarness harness;
-
-  input_buffer.resize(1);
-  input_buffer[0] = 1;  // 0 = soft reboot, 1 = hard reboot
-  ASSERT_NO_ERROR(NuggetCoreTest::client->CallApp(
-      APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer, &output_buffer));
-  ASSERT_EQ(output_buffer.size(), 0u);
-
-  NuggetCoreTest::client->Close();
-  harness.ReadUntil(REBOOT_DELAY);
-  NuggetCoreTest::client->Open();
-  ASSERT_TRUE(NuggetCoreTest::client->IsOpen());
-
-  ASSERT_NO_ERROR(NuggetCoreTest::client->CallApp(
-      APP_ID_NUGGET, NUGGET_PARAM_CYCLES_SINCE_BOOT, input_buffer,
-      &output_buffer));
-  ASSERT_EQ(output_buffer.size(), sizeof(uint32_t));
-  uint32_t post_reboot = *reinterpret_cast<uint32_t *>(output_buffer.data());
-  ASSERT_LT(post_reboot, CLOCK_THRESHOLD);
+TEST_F(NuggetCoreTest, HardRebootTest) {
+  ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_HARD));
 }
 
 
