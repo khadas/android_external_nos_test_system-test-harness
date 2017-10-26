@@ -3,6 +3,7 @@
 #include <app_nugget.h>
 
 #include <chrono>
+#include <iostream>
 #include <thread>
 #include <vector>
 
@@ -11,6 +12,10 @@
 
 DEFINE_string(nos_core_serial, "", "USB device serial number to open");
 #endif  // ANDROID
+
+#ifndef LOG
+#define LOG(x) std::cerr << __FILE__ << ":" << __LINE__ << " " << #x << ": "
+#endif  // LOG
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -37,6 +42,7 @@ bool RebootNugget(nos::NuggetClient *client, uint8_t type) {
   auto start = high_resolution_clock::now();
   if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer,
                       &output_buffer) != app_status::APP_SUCCESS) {
+    LOG(ERROR) << "CallApp(..., NUGGET_PARAM_REBOOT, ...) failed!\n";
     return false;
   };
 
@@ -49,6 +55,7 @@ bool RebootNugget(nos::NuggetClient *client, uint8_t type) {
   std::this_thread::sleep_for(REBOOT_DELAY);
   client->Open();
   if (!client->IsOpen()) {
+    LOG(ERROR) << "Open() failed!\n";
     return false;
   }
 
@@ -56,14 +63,22 @@ bool RebootNugget(nos::NuggetClient *client, uint8_t type) {
   if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_CYCLES_SINCE_BOOT,
                       input_buffer,
                       &output_buffer) != app_status::APP_SUCCESS) {
+    LOG(ERROR) << "CallApp(..., NUGGET_PARAM_CYCLES_SINCE_BOOT, ...) failed!\n";
     return false;
   };
   if (output_buffer.size() != sizeof(uint32_t)) {
+    LOG(ERROR) << "Unexpected size of output!\n";
     return false;
   }
   uint32_t post_reboot = *reinterpret_cast<uint32_t *>(output_buffer.data());
-  if (std::chrono::microseconds(post_reboot) >
-      duration_cast<microseconds>(high_resolution_clock::now() - start)) {
+  // Use the elapsed time +5% for the threshold.
+  auto threshold_microseconds =
+      duration_cast<microseconds>(high_resolution_clock::now() - start) *
+          105 / 100;
+  if (std::chrono::microseconds(post_reboot) > threshold_microseconds ) {
+    LOG(ERROR) << "Counter is " << post_reboot
+               << " but is expected to be less than "
+               << threshold_microseconds.count() * 1.05 << "!\n";
     return false;
   }
   return true;

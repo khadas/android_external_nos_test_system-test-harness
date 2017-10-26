@@ -1,12 +1,13 @@
 
+#include <gtest/gtest.h>
+#include <openssl/aes.h>
+
 #include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <random>
 
-#include "gtest/gtest.h"
-#include "openssl/aes.h"
 #include "nugget/app/protoapi/control.pb.h"
 #include "nugget/app/protoapi/header.pb.h"
 #include "nugget/app/protoapi/testing_api.pb.h"
@@ -15,7 +16,7 @@
 #ifdef ANDROID
 #define FLAGS_nos_test_dump_protos false
 #else
-#include "gflags/gflags.h"
+#include <gflags/gflags.h>
 
 DEFINE_bool(nos_test_dump_protos, false, "Dump binary protobufs to a file.");
 #endif  // ANDROID

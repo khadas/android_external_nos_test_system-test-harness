@@ -1,11 +1,11 @@
 
 #include <app_nugget.h>
 #include <nos/NuggetClient.h>
+#include <gtest/gtest.h>
 
 #include <chrono>
 #include <memory>
 
-#include "gtest/gtest.h"
 #include "nugget_tools.h"
 #include "util.h"
 
@@ -75,7 +75,7 @@ TEST_F(NuggetCoreTest, SoftRebootTest) {
   ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_SOFT));
 }
 
-TEST_F(NuggetCoreTest, DISABLED_HardRebootTest) {
+TEST_F(NuggetCoreTest, HardRebootTest) {
   ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_HARD));
 }
 
