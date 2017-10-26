@@ -325,7 +325,7 @@ TEST_F(KeymasterTest, ImportKeyECP256BadKeyFails) {
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
 }
 
-TEST_F (KeymasterTest, ImportECP256KeySuccess) {
+TEST_F (KeymasterTest, DISABLED_ImportECP256KeySuccess) {
   // Generate an EC key.
   // TODO: just hardcode a test key.
   bssl::UniquePtr<EC_KEY> ec(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
