@@ -78,6 +78,5 @@ cc_library(
     ],
     hdrs = [
         "src/test-data/test-keys/rsa.h",
-        "src/include/keymaster/hal/3.0/types.h",
     ],
 )

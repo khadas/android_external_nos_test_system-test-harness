@@ -1,10 +1,11 @@
 #include "gtest/gtest.h"
 #include "nugget_tools.h"
 #include "nugget/app/keymaster/keymaster.pb.h"
+#include "nugget/app/keymaster/keymaster_defs.pb.h"
+#include "nugget/app/keymaster/keymaster_types.pb.h"
 #include "Keymaster.client.h"
 
 #include "src/macros.h"
-#include "src/include/keymaster/hal/3.0/types.h"
 #include "src/test-data/test-keys/rsa.h"
 
 #include "openssl/bn.h"
@@ -14,8 +15,6 @@
 using std::cout;
 using std::string;
 using std::unique_ptr;
-
-using namespace android::hardware::keymaster::V3_0;
 
 using namespace nugget::app::keymaster;
 
@@ -34,7 +33,7 @@ class KeymasterTest: public testing::Test {
   void initRSARequest(ImportKeyRequest *request, Algorithm alg) {
     KeyParameters *params = request->mutable_params();
     KeyParameter *param = params->add_params();
-    param->set_tag((uint32_t)Tag::ALGORITHM);
+    param->set_tag(Tag::ALGORITHM);
     param->set_integer((uint32_t)alg);
   }
 
@@ -44,7 +43,7 @@ class KeymasterTest: public testing::Test {
     if (key_size >= 0) {
       KeyParameters *params = request->mutable_params();
       KeyParameter *param = params->add_params();
-      param->set_tag((uint32_t)Tag::KEY_SIZE);
+      param->set_tag(Tag::KEY_SIZE);
       param->set_integer(key_size);
     }
   }
@@ -56,7 +55,7 @@ class KeymasterTest: public testing::Test {
     if (public_exponent_tag >= 0) {
       KeyParameters *params = request->mutable_params();
       KeyParameter *param = params->add_params();
-      param->set_tag((uint32_t)Tag::RSA_PUBLIC_EXPONENT);
+      param->set_tag(Tag::RSA_PUBLIC_EXPONENT);
       param->set_long_integer(public_exponent_tag);
     }
   }
@@ -99,11 +98,11 @@ TEST_F(KeymasterTest, ImportKeyAlgorithmMissingFails) {
 
   /* Algorithm tag is unspecified, import should fail. */
   KeyParameter *param = params->add_params();
-  param->set_tag((uint32_t)Tag::KEY_SIZE);
+  param->set_tag(Tag::KEY_SIZE);
   param->set_integer(512);
 
   param = params->add_params();
-  param->set_tag((uint32_t)Tag::RSA_PUBLIC_EXPONENT);
+  param->set_tag(Tag::RSA_PUBLIC_EXPONENT);
   param->set_long_integer(3);
 
   ASSERT_NO_ERROR(service->ImportKey(request, &response));
@@ -218,7 +217,7 @@ TEST_F(KeymasterTest, ImportKeyRSASuccess) {
   KeyParameters *params = request.mutable_params();
   KeyParameter *param = params->add_params();
   for (size_t i = 0; i < ARRAYSIZE(TEST_RSA_KEYS); i++) {
-    param->set_tag((uint32_t)Tag::RSA_PUBLIC_EXPONENT);
+    param->set_tag(Tag::RSA_PUBLIC_EXPONENT);
     param->set_long_integer(TEST_RSA_KEYS[i].e);
 
     request.mutable_rsa()->set_e(TEST_RSA_KEYS[i].e);
@@ -252,7 +251,7 @@ TEST_F(KeymasterTest, ImportKeyECMissingCurveIdTagFails) {
 
   KeyParameters *params = request.mutable_params();
   KeyParameter *param = params->add_params();
-  param->set_tag((uint32_t)Tag::ALGORITHM);
+  param->set_tag(Tag::ALGORITHM);
   param->set_integer((uint32_t)Algorithm::EC);
 
   ASSERT_NO_ERROR(service->ImportKey(request, &response));
@@ -265,11 +264,11 @@ TEST_F(KeymasterTest, ImportKeyECMisMatchedCurveIdTagFails) {
 
   KeyParameters *params = request.mutable_params();
   KeyParameter *param = params->add_params();
-  param->set_tag((uint32_t)Tag::ALGORITHM);
+  param->set_tag(Tag::ALGORITHM);
   param->set_integer((uint32_t)Algorithm::EC);
 
   param = params->add_params();
-  param->set_tag((uint32_t)Tag::EC_CURVE);
+  param->set_tag(Tag::EC_CURVE);
   param->set_integer((uint32_t)EcCurve::P_224);
 
   request.mutable_ec()->set_curve_id((uint32_t)EcCurve::P_256);
@@ -286,11 +285,11 @@ TEST_F(KeymasterTest, ImportKeyECMisMatchedP256KeySizeFails) {
 
   KeyParameters *params = request.mutable_params();
   KeyParameter *param = params->add_params();
-  param->set_tag((uint32_t)Tag::ALGORITHM);
+  param->set_tag(Tag::ALGORITHM);
   param->set_integer((uint32_t)Algorithm::EC);
 
   param = params->add_params();
-  param->set_tag((uint32_t)Tag::EC_CURVE);
+  param->set_tag(Tag::EC_CURVE);
   param->set_integer((uint32_t)EcCurve::P_256);
 
   request.mutable_ec()->set_curve_id((uint32_t)EcCurve::P_256);
@@ -309,11 +308,11 @@ TEST_F(KeymasterTest, ImportKeyECP256BadKeyFails) {
 
   KeyParameters *params = request.mutable_params();
   KeyParameter *param = params->add_params();
-  param->set_tag((uint32_t)Tag::ALGORITHM);
+  param->set_tag(Tag::ALGORITHM);
   param->set_integer((uint32_t)Algorithm::EC);
 
   param = params->add_params();
-  param->set_tag((uint32_t)Tag::EC_CURVE);
+  param->set_tag(Tag::EC_CURVE);
   param->set_integer((uint32_t)EcCurve::P_256);
 
   request.mutable_ec()->set_curve_id((uint32_t)EcCurve::P_256);
@@ -352,11 +351,11 @@ TEST_F (KeymasterTest, DISABLED_ImportECP256KeySuccess) {
 
   KeyParameters *params = request.mutable_params();
   KeyParameter *param = params->add_params();
-  param->set_tag((uint32_t)Tag::ALGORITHM);
+  param->set_tag(Tag::ALGORITHM);
   param->set_integer((uint32_t)Algorithm::EC);
 
   param = params->add_params();
-  param->set_tag((uint32_t)Tag::EC_CURVE);
+  param->set_tag(Tag::EC_CURVE);
   param->set_integer((uint32_t)EcCurve::P_256);
 
   request.mutable_ec()->set_curve_id((uint32_t)EcCurve::P_256);
