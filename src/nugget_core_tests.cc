@@ -75,7 +75,7 @@ TEST_F(NuggetCoreTest, SoftRebootTest) {
   ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_SOFT));
 }
 
-TEST_F(NuggetCoreTest, HardRebootTest) {
+TEST_F(NuggetCoreTest, DISABLED_HardRebootTest) {
   ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_HARD));
 }
 
