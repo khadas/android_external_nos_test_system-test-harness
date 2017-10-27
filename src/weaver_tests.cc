@@ -43,7 +43,9 @@ class WeaverTest: public testing::Test {
 };
 
 std::random_device WeaverTest::random_number_generator;
-/** A random slot is used for each test run to even the wear on the flash. */
+// Randomly select a slot for the test rather than testing all slots to reduce
+// the wear on the flash. All slots behave the same, independently of each
+// other.
 uint32_t WeaverTest::slot = WeaverTest::random_number_generator() & SLOT_MASK;
 
 unique_ptr<nos::NuggetClient> WeaverTest::client;
@@ -152,6 +154,18 @@ TEST_F(WeaverTest, WriteReadErase) {
   testRead(WeaverTest::slot, TEST_KEY, ZERO_VALUE);
 }
 
+TEST_F(WeaverTest, WriteSoftRebootRead) {
+  testWrite(WeaverTest::slot, TEST_KEY, TEST_VALUE);
+  ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_SOFT));
+  testRead(WeaverTest::slot, TEST_KEY, TEST_VALUE);
+}
+
+TEST_F(WeaverTest, WriteHardRebootRead) {
+  testWrite(WeaverTest::slot, TEST_KEY, TEST_VALUE);
+  ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_HARD));
+  testRead(WeaverTest::slot, TEST_KEY, TEST_VALUE);
+}
+
 TEST_F(WeaverTest, ReadThrottle) {
   // Reset slot state.
   testWrite(WeaverTest::slot, TEST_KEY, TEST_VALUE);
@@ -165,6 +179,13 @@ TEST_F(WeaverTest, ReadThrottle) {
   testReadWrongKey(WeaverTest::slot, WRONG_KEY, 0);
   testReadWrongKey(WeaverTest::slot, WRONG_KEY, 0);
   testReadWrongKey(WeaverTest::slot, WRONG_KEY, 30);
+  testReadThrottle(WeaverTest::slot, WRONG_KEY, 30);
+
+  // Reboot will reset the the timer but it should still be active
+  ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_SOFT));
+  testReadThrottle(WeaverTest::slot, WRONG_KEY, 30);
+
+  ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_HARD));
   testReadThrottle(WeaverTest::slot, WRONG_KEY, 30);
 }
 
