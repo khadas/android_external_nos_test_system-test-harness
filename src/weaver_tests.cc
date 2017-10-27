@@ -17,6 +17,7 @@ namespace {
 
 class WeaverTest: public testing::Test {
  protected:
+  static const uint32_t SLOT_MASK = 0x3f;
   static std::random_device random_number_generator;
   static uint32_t slot;
 
@@ -43,7 +44,7 @@ class WeaverTest: public testing::Test {
 
 std::random_device WeaverTest::random_number_generator;
 /** A random slot is used for each test run to even the wear on the flash. */
-uint32_t WeaverTest::slot = WeaverTest::random_number_generator() & 0x3f;
+uint32_t WeaverTest::slot = WeaverTest::random_number_generator() & SLOT_MASK;
 
 unique_ptr<nos::NuggetClient> WeaverTest::client;
 
@@ -152,6 +153,10 @@ TEST_F(WeaverTest, WriteReadErase) {
 }
 
 TEST_F(WeaverTest, ReadThrottle) {
+  // Reset slot state.
+  testWrite(WeaverTest::slot, TEST_KEY, TEST_VALUE);
+  testEraseValue(WeaverTest::slot);
+
   const uint8_t WRONG_KEY[16] = {100, 2, 3, 4, 5, 6, 7, 8,
                                  9, 10, 11, 12, 13, 14, 15, 16};
 
