@@ -324,7 +324,7 @@ TEST_F(KeymasterTest, ImportKeyECP256BadKeyFails) {
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
 }
 
-TEST_F (KeymasterTest, DISABLED_ImportECP256KeySuccess) {
+TEST_F (KeymasterTest, ImportECP256KeySuccess) {
   // Generate an EC key.
   // TODO: just hardcode a test key.
   bssl::UniquePtr<EC_KEY> ec(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
@@ -338,13 +338,14 @@ TEST_F (KeymasterTest, DISABLED_ImportECP256KeySuccess) {
       group, point, x.get(), y.get(), NULL), 1);
 
   // Turn d, x, y into binary strings.
-  std::unique_ptr<uint8_t []> dstr(new uint8_t[BN_num_bytes(d)]);
-  std::unique_ptr<uint8_t []> xstr(new uint8_t[BN_num_bytes(x.get())]);
-  std::unique_ptr<uint8_t []> ystr(new uint8_t[BN_num_bytes(y.get())]);
+  const size_t field_size = EC_GROUP_get_degree(group) >> 3;
+  std::unique_ptr<uint8_t []> dstr(new uint8_t[field_size]);
+  std::unique_ptr<uint8_t []> xstr(new uint8_t[field_size]);
+  std::unique_ptr<uint8_t []> ystr(new uint8_t[field_size]);
 
-  EXPECT_EQ(BN_bn2le_padded(dstr.get(), BN_num_bytes(d), d), 1);
-  EXPECT_EQ(BN_bn2le_padded(xstr.get(), BN_num_bytes(x.get()), x.get()), 1);
-  EXPECT_EQ(BN_bn2le_padded(ystr.get(), BN_num_bytes(y.get()), y.get()), 1);
+  EXPECT_EQ(BN_bn2le_padded(dstr.get(), field_size, d), 1);
+  EXPECT_EQ(BN_bn2le_padded(xstr.get(), field_size, x.get()), 1);
+  EXPECT_EQ(BN_bn2le_padded(ystr.get(), field_size, y.get()), 1);
 
   ImportKeyRequest request;
   ImportKeyResponse response;
@@ -359,9 +360,9 @@ TEST_F (KeymasterTest, DISABLED_ImportECP256KeySuccess) {
   param->set_integer((uint32_t)EcCurve::P_256);
 
   request.mutable_ec()->set_curve_id((uint32_t)EcCurve::P_256);
-  request.mutable_ec()->set_d(dstr.get(), BN_num_bytes(d));
-  request.mutable_ec()->set_x(xstr.get(), BN_num_bytes(x.get()));
-  request.mutable_ec()->set_y(ystr.get(), BN_num_bytes(y.get()));
+  request.mutable_ec()->set_d(dstr.get(), field_size);
+  request.mutable_ec()->set_x(xstr.get(), field_size);
+  request.mutable_ec()->set_y(ystr.get(), field_size);
 
   ASSERT_NO_ERROR(service->ImportKey(request, &response));
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::OK);
