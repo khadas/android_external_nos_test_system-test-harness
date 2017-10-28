@@ -338,7 +338,7 @@ TEST_F (KeymasterTest, ImportECP256KeySuccess) {
       group, point, x.get(), y.get(), NULL), 1);
 
   // Turn d, x, y into binary strings.
-  const size_t field_size = EC_GROUP_get_degree(group) >> 3;
+  const size_t field_size = (EC_GROUP_get_degree(group) + 7) >> 3;
   std::unique_ptr<uint8_t []> dstr(new uint8_t[field_size]);
   std::unique_ptr<uint8_t []> xstr(new uint8_t[field_size]);
   std::unique_ptr<uint8_t []> ystr(new uint8_t[field_size]);
