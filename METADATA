@@ -14,4 +14,5 @@ third_party {
   }
   version: "fdaa3981005f9140c1113659204eb866ff86c042"
   last_upgrade_date { year: 2017 month: 10 day: 30 }
+  license_type: NOTICE
 }
