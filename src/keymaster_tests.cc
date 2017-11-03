@@ -295,6 +295,29 @@ TEST_F(KeymasterTest, ImportKeyECMisMatchedCurveIdTagFails) {
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
 }
 
+TEST_F(KeymasterTest, ImportKeyECMisMatchedKeySizeTagCurveTagFails) {
+  ImportKeyRequest request;
+  ImportKeyResponse response;
+
+  KeyParameters *params = request.mutable_params();
+  KeyParameter *param = params->add_params();
+  param->set_tag(Tag::ALGORITHM);
+  param->set_integer((uint32_t)Algorithm::EC);
+
+  param = params->add_params();
+  param->set_tag(Tag::EC_CURVE);
+  param->set_integer((uint32_t)EcCurve::P_224);
+
+  param = params->add_params();
+  param->set_tag(Tag::KEY_SIZE);
+  param->set_integer((uint32_t)256);  /* Should be 224 */
+
+  request.mutable_ec()->set_curve_id((uint32_t)EcCurve::P_224);
+
+  ASSERT_NO_ERROR(service->ImportKey(request, &response));
+  EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
+}
+
 // TODO: tests for P224.
 
 TEST_F(KeymasterTest, ImportKeyECMisMatchedP256KeySizeFails) {
@@ -377,6 +400,10 @@ TEST_F (KeymasterTest, ImportECP256KeySuccess) {
   param->set_tag(Tag::EC_CURVE);
   param->set_integer((uint32_t)EcCurve::P_256);
 
+  param = params->add_params();
+  param->set_tag(Tag::KEY_SIZE);
+  param->set_integer((uint32_t)256);
+
   request.mutable_ec()->set_curve_id((uint32_t)EcCurve::P_256);
   request.mutable_ec()->set_d(dstr.get(), field_size);
   request.mutable_ec()->set_x(xstr.get(), field_size);
@@ -387,5 +414,8 @@ TEST_F (KeymasterTest, ImportECP256KeySuccess) {
 }
 
 // TODO: tests for P384, P521.
+
+
+// TODO: add tests for symmetric key import.
 
 }  // namespace
