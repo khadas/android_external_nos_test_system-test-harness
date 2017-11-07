@@ -8,6 +8,7 @@ COPTS = [
 cc_binary(
     name = "runtests",
     srcs = [
+        "src/aes-cmac-tests.cc",
         "src/gtest_with_gflags_main.cc",
         "src/keymaster_tests.cc",
         "src/nugget_core_tests.cc",
@@ -16,6 +17,7 @@ cc_binary(
     ],
     copts = COPTS,
     deps = [
+        ":dcrypto_test_data",
         ":km_test_lib",
         ":util",
         "@boringssl//:ssl",
@@ -79,5 +81,13 @@ cc_library(
     ],
     hdrs = [
         "src/test-data/test-keys/rsa.h",
+    ],
+)
+
+cc_library(
+    name = "dcrypto_test_data",
+    srcs = [],
+    hdrs = [
+        "src/test-data/dcrypto/aes-cmac-rfc4493.h",
     ],
 )
