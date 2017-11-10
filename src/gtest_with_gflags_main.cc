@@ -18,7 +18,8 @@ DEFINE_bool(disable_slow_tests, false, "Enables a filter to disable a set of slo
 int main(int argc, char** argv) {
   const std::vector<std::string> slow_tests{
       "KeymasterTest.ImportKeyRSASuccess",
-      "NuggetCoreTest.HardRebootTest",};
+      "NuggetCoreTest.HardRebootTest",
+      "WeaverTest.WriteHardRebootRead",};
 
   testing::InitGoogleMock(&argc, argv);
 #ifndef ANDROID
@@ -40,10 +41,11 @@ int main(int argc, char** argv) {
     for (const auto& test : slow_tests) {
       if (first) {
         first = false;
+        ss << "-";
       } else {
         ss << ":";
       }
-      ss << "-" << test;
+      ss << test;
     }
     ::testing::GTEST_FLAG(filter) = ss.str();
   }
