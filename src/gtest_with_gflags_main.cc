@@ -19,7 +19,9 @@ int main(int argc, char** argv) {
   const std::vector<std::string> slow_tests{
       "KeymasterTest.ImportKeyRSASuccess",
       "NuggetCoreTest.HardRebootTest",
-      "WeaverTest.WriteHardRebootRead",};
+      "WeaverTest.WriteHardRebootRead",
+      "WeaverTest.ReadThrottleAfterHardReboot",
+      "WeaverTest.ReadAttemptCounterPersistsHardReboot",};
 
   testing::InitGoogleMock(&argc, argv);
 #ifndef ANDROID
