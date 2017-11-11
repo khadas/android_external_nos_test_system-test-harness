@@ -7,6 +7,10 @@
 #include "nugget/app/weaver/weaver.pb.h"
 #include "Weaver.client.h"
 
+#define __STAMP_STR1__(a) #a
+#define __STAMP_STR__(a) __STAMP_STR1__(a)
+#define __STAMP__ __STAMP_STR__(__FILE__) ":" __STAMP_STR__(__LINE__)
+
 using std::cout;
 using std::string;
 using std::unique_ptr;
@@ -26,12 +30,14 @@ class WeaverTest: public testing::Test {
   static void SetUpTestCase();
   static void TearDownTestCase();
 
-  void testWrite(uint32_t slot, const uint8_t *key, const uint8_t *value);
-  void testRead(const uint32_t slot, const uint8_t *key, const uint8_t *value);
-  void testEraseValue(uint32_t slot);
-  void testReadWrongKey(uint32_t slot, const uint8_t *key,
+  void testWrite(const string& msg, uint32_t slot, const uint8_t *key,
+                 const uint8_t *value);
+  void testRead(const string& msg, const uint32_t slot, const uint8_t *key,
+                const uint8_t *value);
+  void testEraseValue(const string& msg, uint32_t slot);
+  void testReadWrongKey(const string& msg, uint32_t slot, const uint8_t *key,
                         uint32_t throttle_sec);
-  void testReadThrottle(uint32_t slot, const uint8_t *key,
+  void testReadThrottle(const string& msg, uint32_t slot, const uint8_t *key,
                         uint32_t throttle_sec);
  public:
   const size_t KEY_SIZE = 16;
@@ -61,7 +67,7 @@ void WeaverTest::TearDownTestCase() {
   client = unique_ptr<nos::NuggetClient>();
 }
 
-void WeaverTest::testWrite(uint32_t slot, const uint8_t *key,
+void WeaverTest::testWrite(const string& msg, uint32_t slot, const uint8_t *key,
                            const uint8_t *value) {
   WriteRequest request;
   WriteResponse response;
@@ -70,10 +76,10 @@ void WeaverTest::testWrite(uint32_t slot, const uint8_t *key,
   request.set_value(value, VALUE_SIZE);
 
   Weaver service(*client);
-  ASSERT_NO_ERROR(service.Write(request, &response));
+  ASSERT_NO_ERROR(service.Write(request, &response)) << msg;
 }
 
-void WeaverTest::testRead(uint32_t slot, const uint8_t *key,
+void WeaverTest::testRead(const string& msg, uint32_t slot, const uint8_t *key,
                           const uint8_t *value) {
   ReadRequest request;
   ReadResponse response;
@@ -81,55 +87,58 @@ void WeaverTest::testRead(uint32_t slot, const uint8_t *key,
   request.set_key(key, KEY_SIZE);
 
   Weaver service(*client);
-  ASSERT_NO_ERROR(service.Read(request, &response));
-  ASSERT_EQ(response.error(), ReadResponse::NONE);
-  ASSERT_EQ(response.throttle_msec(), 0u);
+  ASSERT_NO_ERROR(service.Read(request, &response)) << msg;
+  ASSERT_EQ(response.error(), ReadResponse::NONE) << msg;
+  ASSERT_EQ(response.throttle_msec(), 0u) << msg;
   auto response_value = response.value();
   for (size_t x = 0; x < KEY_SIZE; ++x) {
-    ASSERT_EQ(response_value[x], value[x]) << "Inconsistency at index " << x;
+    ASSERT_EQ(response_value[x], value[x]) << "Inconsistency at index " << x
+                                           <<" " << msg;
   }
 }
 
-void WeaverTest::testEraseValue(uint32_t slot) {
+void WeaverTest::testEraseValue(const string& msg, uint32_t slot) {
   EraseValueRequest request;
   EraseValueResponse response;
   request.set_slot(slot);
 
   Weaver service(*client);
-  ASSERT_NO_ERROR(service.EraseValue(request, &response));
+  ASSERT_NO_ERROR(service.EraseValue(request, &response)) << msg;
 }
 
-void WeaverTest::testReadWrongKey(uint32_t slot, const uint8_t *key,
-                                  uint32_t throttle_sec) {
+void WeaverTest::testReadWrongKey(const string& msg, uint32_t slot,
+                                  const uint8_t *key, uint32_t throttle_sec) {
   ReadRequest request;
   ReadResponse response;
   request.set_slot(slot);
   request.set_key(key, KEY_SIZE);
 
   Weaver service(*client);
-  ASSERT_NO_ERROR(service.Read(request, &response));
-  ASSERT_EQ(response.error(), ReadResponse::WRONG_KEY);
-  ASSERT_EQ(response.throttle_msec(), throttle_sec * 1000);
+  ASSERT_NO_ERROR(service.Read(request, &response)) << msg;
+  ASSERT_EQ(response.error(), ReadResponse::WRONG_KEY) << msg;
+  ASSERT_EQ(response.throttle_msec(), throttle_sec * 1000) << msg;
   auto response_value = response.value();
   for (size_t x = 0; x < response_value.size(); ++x) {
-    ASSERT_EQ(response_value[x], 0) << "Inconsistency at index " << x;
+    ASSERT_EQ(response_value[x], 0) << "Inconsistency at index " << x
+                                    <<" " << msg;
   }
 }
 
-void WeaverTest::testReadThrottle(uint32_t slot, const uint8_t *key,
-                                  uint32_t throttle_sec) {
+void WeaverTest::testReadThrottle(const string& msg, uint32_t slot,
+                                  const uint8_t *key, uint32_t throttle_sec) {
   ReadRequest request;
   ReadResponse response;
   request.set_slot(slot);
   request.set_key(key, KEY_SIZE);
 
   Weaver service(*client);
-  ASSERT_NO_ERROR(service.Read(request, &response));
-  ASSERT_EQ(response.error(), ReadResponse::THROTTLE);
-  ASSERT_LE(response.throttle_msec(), throttle_sec * 1000);
+  ASSERT_NO_ERROR(service.Read(request, &response)) << msg;
+  ASSERT_EQ(response.error(), ReadResponse::THROTTLE) << msg;
+  ASSERT_LE(response.throttle_msec(), throttle_sec * 1000) << msg;
   auto response_value = response.value();
   for (size_t x = 0; x < response_value.size(); ++x) {
-    ASSERT_EQ(response_value[x], 0) << "Inconsistency at index " << x;
+    ASSERT_EQ(response_value[x], 0) << "Inconsistency at index " << x
+                                    <<" " << msg;
   }
 }
 
@@ -147,46 +156,46 @@ TEST_F(WeaverTest, GetConfig) {
 TEST_F(WeaverTest, WriteReadErase) {
   const uint8_t ZERO_VALUE[16] = {0};
 
-  testWrite(WeaverTest::slot, TEST_KEY, TEST_VALUE);
-  testRead(WeaverTest::slot, TEST_KEY, TEST_VALUE);
-  testEraseValue(WeaverTest::slot);
+  testWrite(__STAMP__, WeaverTest::slot, TEST_KEY, TEST_VALUE);
+  testRead(__STAMP__, WeaverTest::slot, TEST_KEY, TEST_VALUE);
+  testEraseValue(__STAMP__, WeaverTest::slot);
 
-  testRead(WeaverTest::slot, TEST_KEY, ZERO_VALUE);
+  testRead(__STAMP__, WeaverTest::slot, TEST_KEY, ZERO_VALUE);
 }
 
 TEST_F(WeaverTest, WriteSoftRebootRead) {
-  testWrite(WeaverTest::slot, TEST_KEY, TEST_VALUE);
+  testWrite(__STAMP__, WeaverTest::slot, TEST_KEY, TEST_VALUE);
   ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_SOFT));
-  testRead(WeaverTest::slot, TEST_KEY, TEST_VALUE);
+  testRead(__STAMP__, WeaverTest::slot, TEST_KEY, TEST_VALUE);
 }
 
 TEST_F(WeaverTest, WriteHardRebootRead) {
-  testWrite(WeaverTest::slot, TEST_KEY, TEST_VALUE);
+  testWrite(__STAMP__, WeaverTest::slot, TEST_KEY, TEST_VALUE);
   ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_HARD));
-  testRead(WeaverTest::slot, TEST_KEY, TEST_VALUE);
+  testRead(__STAMP__, WeaverTest::slot, TEST_KEY, TEST_VALUE);
 }
 
 TEST_F(WeaverTest, ReadThrottle) {
   // Reset slot state.
-  testWrite(WeaverTest::slot, TEST_KEY, TEST_VALUE);
-  testEraseValue(WeaverTest::slot);
+  testWrite(__STAMP__, WeaverTest::slot, TEST_KEY, TEST_VALUE);
+  testEraseValue(__STAMP__, WeaverTest::slot);
 
   const uint8_t WRONG_KEY[16] = {100, 2, 3, 4, 5, 6, 7, 8,
                                  9, 10, 11, 12, 13, 14, 15, 16};
 
-  testReadWrongKey(WeaverTest::slot, WRONG_KEY, 0);
-  testReadWrongKey(WeaverTest::slot, WRONG_KEY, 0);
-  testReadWrongKey(WeaverTest::slot, WRONG_KEY, 0);
-  testReadWrongKey(WeaverTest::slot, WRONG_KEY, 0);
-  testReadWrongKey(WeaverTest::slot, WRONG_KEY, 30);
-  testReadThrottle(WeaverTest::slot, WRONG_KEY, 30);
+  testReadWrongKey(__STAMP__, WeaverTest::slot, WRONG_KEY, 0);
+  testReadWrongKey(__STAMP__, WeaverTest::slot, WRONG_KEY, 0);
+  testReadWrongKey(__STAMP__, WeaverTest::slot, WRONG_KEY, 0);
+  testReadWrongKey(__STAMP__, WeaverTest::slot, WRONG_KEY, 0);
+  testReadWrongKey(__STAMP__, WeaverTest::slot, WRONG_KEY, 30);
+  testReadThrottle(__STAMP__, WeaverTest::slot, WRONG_KEY, 30);
 
   // Reboot will reset the the timer but it should still be active
   ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_SOFT));
-  testReadThrottle(WeaverTest::slot, WRONG_KEY, 30);
+  testReadThrottle(__STAMP__, WeaverTest::slot, WRONG_KEY, 30);
 
   ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_HARD));
-  testReadThrottle(WeaverTest::slot, WRONG_KEY, 30);
+  testReadThrottle(__STAMP__, WeaverTest::slot, WRONG_KEY, 30);
 }
 
 TEST_F(WeaverTest, ReadInvalidSlot) {
