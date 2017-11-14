@@ -139,7 +139,7 @@ void WeaverTest::testReadThrottle(const string& msg, uint32_t slot,
   Weaver service(*client);
   ASSERT_NO_ERROR(service.Read(request, &response)) << msg;
   ASSERT_EQ(response.error(), ReadResponse::THROTTLE) << msg;
-  ASSERT_NE(response.throttle_msec(), 0) << msg;
+  ASSERT_NE(response.throttle_msec(), 0u) << msg;
   ASSERT_LE(response.throttle_msec(), throttle_sec * 1000) << msg;
   auto response_value = response.value();
   for (size_t x = 0; x < response_value.size(); ++x) {
