@@ -11,7 +11,7 @@ cc_binary(
         "src/aes-cmac-tests.cc",
 	"src/asn1-tests.cc",
         "src/gtest_with_gflags_main.cc",
-        "src/keymaster_tests.cc",
+        "src/keymaster-import-key-tests.cc",
         "src/nugget_core_tests.cc",
         "src/runtests.cc",
         "src/weaver_tests.cc",

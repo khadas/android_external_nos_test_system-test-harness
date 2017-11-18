@@ -23,7 +23,7 @@ using namespace test_data;
 
 namespace {
 
-class KeymasterTest: public testing::Test {
+class ImportKeyTest: public testing::Test {
  protected:
   static unique_ptr<nos::NuggetClient> client;
   static unique_ptr<Keymaster> service;
@@ -72,10 +72,10 @@ class KeymasterTest: public testing::Test {
   }
 };
 
-unique_ptr<nos::NuggetClient> KeymasterTest::client;
-unique_ptr<Keymaster> KeymasterTest::service;
+unique_ptr<nos::NuggetClient> ImportKeyTest::client;
+unique_ptr<Keymaster> ImportKeyTest::service;
 
-void KeymasterTest::SetUpTestCase() {
+void ImportKeyTest::SetUpTestCase() {
   client = nugget_tools::MakeNuggetClient();
   client->Open();
   EXPECT_TRUE(client->IsOpen()) << "Unable to connect";
@@ -83,7 +83,7 @@ void KeymasterTest::SetUpTestCase() {
   service.reset(new Keymaster(*client));
 }
 
-void KeymasterTest::TearDownTestCase() {
+void ImportKeyTest::TearDownTestCase() {
   client->Close();
   client = unique_ptr<nos::NuggetClient>();
 }
@@ -91,7 +91,7 @@ void KeymasterTest::TearDownTestCase() {
 // TODO: refactor into import key tests.
 
 // Failure cases.
-TEST_F(KeymasterTest, ImportKeyAlgorithmMissingFails) {
+TEST_F(ImportKeyTest, AlgorithmMissingFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -112,7 +112,7 @@ TEST_F(KeymasterTest, ImportKeyAlgorithmMissingFails) {
 
 // RSA
 
-TEST_F(KeymasterTest, ImportKeyRSAInvalidKeySizeFails) {
+TEST_F(ImportKeyTest, RSAInvalidKeySizeFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -122,7 +122,7 @@ TEST_F(KeymasterTest, ImportKeyRSAInvalidKeySizeFails) {
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::UNSUPPORTED_KEY_SIZE);
 }
 
-TEST_F(KeymasterTest, ImportKeyRSAInvalidPublicExponentFails) {
+TEST_F(ImportKeyTest, RSAInvalidPublicExponentFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -135,7 +135,7 @@ TEST_F(KeymasterTest, ImportKeyRSAInvalidPublicExponentFails) {
             ErrorCode::UNSUPPORTED_KEY_SIZE);
 }
 
-TEST_F(KeymasterTest, ImportKeyRSAKeySizeTagMisatchNFails) {
+TEST_F(ImportKeyTest, RSAKeySizeTagMisatchNFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -147,7 +147,7 @@ TEST_F(KeymasterTest, ImportKeyRSAKeySizeTagMisatchNFails) {
             ErrorCode::IMPORT_PARAMETER_MISMATCH);
 }
 
-TEST_F(KeymasterTest, ImportKeyRSAKeySizeTagMisatchDFails) {
+TEST_F(ImportKeyTest, RSAKeySizeTagMisatchDFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -159,7 +159,7 @@ TEST_F(KeymasterTest, ImportKeyRSAKeySizeTagMisatchDFails) {
             ErrorCode::IMPORT_PARAMETER_MISMATCH);
 }
 
-TEST_F(KeymasterTest, ImportKeyRSAPublicExponentTagMisatchFails) {
+TEST_F(ImportKeyTest, RSAPublicExponentTagMisatchFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -171,7 +171,7 @@ TEST_F(KeymasterTest, ImportKeyRSAPublicExponentTagMisatchFails) {
             ErrorCode::IMPORT_PARAMETER_MISMATCH);
 }
 
-TEST_F(KeymasterTest, ImportKeyRSA1024BadEFails) {
+TEST_F(ImportKeyTest, RSA1024BadEFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -184,7 +184,7 @@ TEST_F(KeymasterTest, ImportKeyRSA1024BadEFails) {
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
 }
 
-TEST_F(KeymasterTest, ImportKeyRSA1024BadDFails) {
+TEST_F(ImportKeyTest, RSA1024BadDFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -197,7 +197,7 @@ TEST_F(KeymasterTest, ImportKeyRSA1024BadDFails) {
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
 }
 
-TEST_F(KeymasterTest, ImportKeyRSA1024BadNFails) {
+TEST_F(ImportKeyTest, RSA1024BadNFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -210,7 +210,7 @@ TEST_F(KeymasterTest, ImportKeyRSA1024BadNFails) {
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
 }
 
-TEST_F(KeymasterTest, ImportKeyRSASuccess) {
+TEST_F(ImportKeyTest, RSASuccess) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -241,7 +241,7 @@ TEST_F(KeymasterTest, ImportKeyRSASuccess) {
   }
 }
 
-TEST_F(KeymasterTest, ImportKeyRSA1024OptionalParamsAbsentSuccess) {
+TEST_F(ImportKeyTest, RSA1024OptionalParamsAbsentSuccess) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -263,7 +263,7 @@ TEST_F(KeymasterTest, ImportKeyRSA1024OptionalParamsAbsentSuccess) {
 
 // EC
 
-TEST_F(KeymasterTest, ImportKeyECMissingCurveIdTagFails) {
+TEST_F(ImportKeyTest, ECMissingCurveIdTagFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -276,7 +276,7 @@ TEST_F(KeymasterTest, ImportKeyECMissingCurveIdTagFails) {
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
 }
 
-TEST_F(KeymasterTest, ImportKeyECMisMatchedCurveIdTagFails) {
+TEST_F(ImportKeyTest, ECMisMatchedCurveIdTagFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -295,7 +295,7 @@ TEST_F(KeymasterTest, ImportKeyECMisMatchedCurveIdTagFails) {
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
 }
 
-TEST_F(KeymasterTest, ImportKeyECMisMatchedKeySizeTagCurveTagFails) {
+TEST_F(ImportKeyTest, ECMisMatchedKeySizeTagCurveTagFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -320,7 +320,7 @@ TEST_F(KeymasterTest, ImportKeyECMisMatchedKeySizeTagCurveTagFails) {
 
 // TODO: tests for P224.
 
-TEST_F(KeymasterTest, ImportKeyECMisMatchedP256KeySizeFails) {
+TEST_F(ImportKeyTest, ECMisMatchedP256KeySizeFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -343,7 +343,7 @@ TEST_F(KeymasterTest, ImportKeyECMisMatchedP256KeySizeFails) {
 }
 
 // TODO: bad key tests.  invalid d, {x,y} not on curve, d, xy mismatched.
-TEST_F(KeymasterTest, ImportKeyECP256BadKeyFails) {
+TEST_F(ImportKeyTest, ECP256BadKeyFails) {
   ImportKeyRequest request;
   ImportKeyResponse response;
 
@@ -365,7 +365,7 @@ TEST_F(KeymasterTest, ImportKeyECP256BadKeyFails) {
   EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::INVALID_ARGUMENT);
 }
 
-TEST_F (KeymasterTest, ImportECP256KeySuccess) {
+TEST_F (ImportKeyTest, ImportECP256KeySuccess) {
   // Generate an EC key.
   // TODO: just hardcode a test key.
   bssl::UniquePtr<EC_KEY> ec(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));

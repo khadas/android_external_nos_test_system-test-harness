@@ -77,7 +77,7 @@ void Asn1Test::TearDownTestCase() {
 
 #include "src/test-data/dcrypto/asn1-data.h"
 
-TEST_F(Asn1Test, Asn1ParseTagSuccessTest) {
+TEST_F(Asn1Test, ParseTagSuccessTest) {
   const int verbosity = harness->getVerbosity();
   harness->setVerbosity(verbosity - 1);
   harness->ReadUntil(test_harness::BYTE_TIME * 1024);
@@ -115,7 +115,7 @@ TEST_F(Asn1Test, Asn1ParseTagSuccessTest) {
   harness->setVerbosity(verbosity);
 }
 
-TEST_F(Asn1Test, Asn1ParseTagFailureTest) {
+TEST_F(Asn1Test, ParseTagFailureTest) {
   const int verbosity = harness->getVerbosity();
   harness->setVerbosity(verbosity - 1);
   harness->ReadUntil(test_harness::BYTE_TIME * 1024);
