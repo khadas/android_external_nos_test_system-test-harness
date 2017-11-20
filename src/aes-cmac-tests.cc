@@ -4,7 +4,6 @@
 #include <sstream>
 
 #include "gtest/gtest.h"
-#include "gflags/gflags.h"
 #include "nugget/app/protoapi/control.pb.h"
 #include "nugget/app/protoapi/header.pb.h"
 #include "nugget/app/protoapi/testing_api.pb.h"
@@ -60,18 +59,10 @@ std::random_device DcryptoTest::random_number_generator;
 void DcryptoTest::SetUpTestCase() {
   harness = unique_ptr<test_harness::TestHarness>(
       new test_harness::TestHarness());
-
-  if (!harness->UsingSpi()) {
-    EXPECT_TRUE(harness->SwitchFromConsoleToProtoApi());
-    EXPECT_TRUE(harness->ttyState());
-  }
 }
 
 void DcryptoTest::TearDownTestCase() {
   harness->ReadUntil(test_harness::BYTE_TIME * 1024);
-  if (!harness->UsingSpi()) {
-    EXPECT_TRUE(harness->SwitchFromProtoApiToConsole(NULL));
-  }
   harness = unique_ptr<test_harness::TestHarness>();
 }
 
