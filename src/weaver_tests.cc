@@ -183,6 +183,39 @@ TEST_F(WeaverTest, WriteReadErase) {
   testRead(__STAMP__, WeaverTest::slot, TEST_KEY, ZERO_VALUE);
 }
 
+// 5 slots per record
+TEST_F(WeaverTest, WriteToMultipleSlotsInSameRecordIncreasingOrder) {
+  testWrite(__STAMP__, 0, TEST_KEY, TEST_VALUE);
+  testWrite(__STAMP__, 1, TEST_KEY, TEST_VALUE);
+
+  testRead(__STAMP__, 0, TEST_KEY, TEST_VALUE);
+  testRead(__STAMP__, 1, TEST_KEY, TEST_VALUE);
+}
+
+TEST_F(WeaverTest, WriteToMultipleSlotsInSameRecordDecreasingOrder) {
+  testWrite(__STAMP__, 8, TEST_KEY, TEST_VALUE);
+  testWrite(__STAMP__, 7, TEST_KEY, TEST_VALUE);
+
+  testRead(__STAMP__, 8, TEST_KEY, TEST_VALUE);
+  testRead(__STAMP__, 7, TEST_KEY, TEST_VALUE);
+}
+
+TEST_F(WeaverTest, WriteToMultipleSlotsInDifferentRecordsIncreasingOrder) {
+  testWrite(__STAMP__, 9, TEST_KEY, TEST_VALUE);
+  testWrite(__STAMP__, 10, TEST_KEY, TEST_VALUE);
+
+  testRead(__STAMP__, 9, TEST_KEY, TEST_VALUE);
+  testRead(__STAMP__, 10, TEST_KEY, TEST_VALUE);
+}
+
+TEST_F(WeaverTest, WriteToMultipleSlotsInDifferentRecordsDecreasingOrder) {
+  testWrite(__STAMP__, 5, TEST_KEY, TEST_VALUE);
+  testWrite(__STAMP__, 4, TEST_KEY, TEST_VALUE);
+
+  testRead(__STAMP__, 4, TEST_KEY, TEST_VALUE);
+  testRead(__STAMP__, 5, TEST_KEY, TEST_VALUE);
+}
+
 TEST_F(WeaverTest, WriteSoftRebootRead) {
   testWrite(__STAMP__, WeaverTest::slot, TEST_KEY, TEST_VALUE);
   ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_SOFT));
