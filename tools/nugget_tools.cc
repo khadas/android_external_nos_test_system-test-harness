@@ -1,6 +1,7 @@
 #include "nugget_tools.h"
 
 #include <app_nugget.h>
+#include <nos/NuggetClient.h>
 
 #include <chrono>
 #include <iostream>
@@ -24,16 +25,16 @@ using std::chrono::microseconds;
 
 namespace nugget_tools {
 
-std::unique_ptr<nos::NuggetClient> MakeNuggetClient() {
+std::unique_ptr<nos::NuggetClientInterface> MakeNuggetClient() {
 #ifdef ANDROID
   return std::unique_ptr<nos::NuggetClient>(new nos::NuggetClient());
 #else
-  return std::unique_ptr<nos::NuggetClient>(
+  return std::unique_ptr<nos::NuggetClientInterface>(
       new nos::NuggetClient(FLAGS_nos_core_serial));
 #endif
 }
 
-bool RebootNugget(nos::NuggetClient *client, uint8_t type) {
+bool RebootNugget(nos::NuggetClientInterface *client, uint8_t type) {
   // 0 = soft reboot, 1 = hard reboot
   std::vector<uint8_t> input_buffer(1, type);
   std::vector<uint8_t> output_buffer;

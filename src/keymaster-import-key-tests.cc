@@ -25,7 +25,7 @@ namespace {
 
 class ImportKeyTest: public testing::Test {
  protected:
-  static unique_ptr<nos::NuggetClient> client;
+  static unique_ptr<nos::NuggetClientInterface> client;
   static unique_ptr<Keymaster> service;
 
   static void SetUpTestCase();
@@ -72,7 +72,7 @@ class ImportKeyTest: public testing::Test {
   }
 };
 
-unique_ptr<nos::NuggetClient> ImportKeyTest::client;
+unique_ptr<nos::NuggetClientInterface> ImportKeyTest::client;
 unique_ptr<Keymaster> ImportKeyTest::service;
 
 void ImportKeyTest::SetUpTestCase() {
@@ -85,7 +85,7 @@ void ImportKeyTest::SetUpTestCase() {
 
 void ImportKeyTest::TearDownTestCase() {
   client->Close();
-  client = unique_ptr<nos::NuggetClient>();
+  client = unique_ptr<nos::NuggetClientInterface>();
 }
 
 // TODO: refactor into import key tests.

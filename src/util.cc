@@ -94,7 +94,7 @@ TestHarness::~TestHarness() {
 
   if (client) {
     client->Close();
-    client = unique_ptr<nos::NuggetClient >();
+    client = unique_ptr<nos::NuggetClientInterface >();
   }
 }
 

@@ -25,7 +25,7 @@ class WeaverTest: public testing::Test {
   static std::random_device random_number_generator;
   static uint32_t slot;
 
-  static unique_ptr<nos::NuggetClient> client;
+  static unique_ptr<nos::NuggetClientInterface> client;
 
   static void SetUpTestCase();
   static void TearDownTestCase();
@@ -59,7 +59,7 @@ std::random_device WeaverTest::random_number_generator;
 // other.
 uint32_t WeaverTest::slot = WeaverTest::random_number_generator() & SLOT_MASK;
 
-unique_ptr<nos::NuggetClient> WeaverTest::client;
+unique_ptr<nos::NuggetClientInterface> WeaverTest::client;
 
 void WeaverTest::SetUpTestCase() {
   client = nugget_tools::MakeNuggetClient();
@@ -69,7 +69,7 @@ void WeaverTest::SetUpTestCase() {
 
 void WeaverTest::TearDownTestCase() {
   client->Close();
-  client = unique_ptr<nos::NuggetClient>();
+  client = unique_ptr<nos::NuggetClientInterface>();
 }
 
 void WeaverTest::testWrite(const string& msg, uint32_t slot, const uint8_t *key,

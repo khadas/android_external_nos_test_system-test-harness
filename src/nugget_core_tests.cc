@@ -1,6 +1,6 @@
 
 #include <app_nugget.h>
-#include <nos/NuggetClient.h>
+#include <nos/NuggetClientInterface.h>
 #include <gtest/gtest.h>
 
 #include <chrono>
@@ -21,12 +21,12 @@ class NuggetCoreTest: public testing::Test {
   static void SetUpTestCase();
   static void TearDownTestCase();
 
-  static unique_ptr<nos::NuggetClient> client;
+  static unique_ptr<nos::NuggetClientInterface> client;
   static vector<uint8_t> input_buffer;
   static vector<uint8_t> output_buffer;
 };
 
-unique_ptr<nos::NuggetClient> NuggetCoreTest::client;
+unique_ptr<nos::NuggetClientInterface> NuggetCoreTest::client;
 
 vector<uint8_t> NuggetCoreTest::input_buffer;
 vector<uint8_t> NuggetCoreTest::output_buffer;
@@ -41,7 +41,7 @@ void NuggetCoreTest::SetUpTestCase() {
 
 void NuggetCoreTest::TearDownTestCase() {
   client->Close();
-  client = unique_ptr<nos::NuggetClient>();
+  client = unique_ptr<nos::NuggetClientInterface>();
 }
 
 // ./test_app --id 0 -p 0 -a

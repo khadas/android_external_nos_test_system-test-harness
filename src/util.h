@@ -124,7 +124,7 @@ class TestHarness {
   int tty_fd;
 
   // Needed for libnos / SPI.
-  unique_ptr<nos::NuggetClient> client;
+  unique_ptr<nos::NuggetClientInterface> client;
   int SendSpi(const raw_message& msg);
   int GetSpi(raw_message* msg, std::chrono::microseconds timeout);
 };
