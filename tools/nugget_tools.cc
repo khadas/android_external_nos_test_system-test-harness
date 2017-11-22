@@ -8,7 +8,9 @@
 #include <thread>
 #include <vector>
 
-#ifndef ANDROID
+#ifdef ANDROID
+#include "nos/CitadeldProxyClient.h"
+#else
 #include "gflags/gflags.h"
 
 DEFINE_string(nos_core_serial, "", "USB device serial number to open");
@@ -27,7 +29,14 @@ namespace nugget_tools {
 
 std::unique_ptr<nos::NuggetClientInterface> MakeNuggetClient() {
 #ifdef ANDROID
-  return std::unique_ptr<nos::NuggetClient>(new nos::NuggetClient());
+  std::unique_ptr<nos::NuggetClientInterface> client =
+      std::unique_ptr<nos::NuggetClientInterface>(new nos::NuggetClient());
+  client->Open();
+  if (!client->IsOpen()) {
+    client = std::unique_ptr<nos::NuggetClientInterface>(
+        new nos::CitadeldProxyClient());
+  }
+  return client;
 #else
   return std::unique_ptr<nos::NuggetClientInterface>(
       new nos::NuggetClient(FLAGS_nos_core_serial));

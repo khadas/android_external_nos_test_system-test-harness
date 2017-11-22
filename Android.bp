@@ -43,7 +43,6 @@ cc_binary {
     static_libs: [
         "libgmock",
         "libgtest",
-        "nugget_tools",
     ],
     shared_libs: [
         "libcrypto",
@@ -54,5 +53,6 @@ cc_binary {
         "libssl",
         "nos_app_keymaster",
         "nos_app_weaver",
+        "nugget_tools",
     ],
 }
