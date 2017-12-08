@@ -36,6 +36,22 @@ cc_binary(
 )
 
 cc_binary(
+    name = "stress_test",
+    srcs = [
+        "src/stress_test.cc",
+    ],
+    copts = COPTS,
+    deps = [
+        ":util",
+        "@com_google_protobuf//:protobuf",
+        "@nugget_core_nugget//:config_chip",
+        "@nugget_host_generic_libnos//:libnos",
+        "@nugget_host_linux_citadel_libnos_datagram//:libnos_datagram",
+        "@nugget_test_systemtestharness_tools//:nugget_tools",
+    ],
+)
+
+cc_binary(
     name = "cavptests",
     srcs = [
         "src/cavptests.cc",

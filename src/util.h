@@ -81,6 +81,8 @@ class TestHarness {
   /** Reads from tty until the specified duration has passed. */
   string ReadUntil(std::chrono::microseconds end);
 
+  bool RebootNugget(uint8_t type);
+
   int SendData(const raw_message& msg);
   int SendOneofProto(uint16_t type, uint16_t subtype,
                      const google::protobuf::Message& message);

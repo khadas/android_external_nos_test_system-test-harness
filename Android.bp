@@ -56,3 +56,30 @@ cc_binary {
         "nugget_tools",
     ],
 }
+
+cc_binary {
+    name: "stress_test",
+    defaults: [
+        "nos_cc_defaults",
+        "libnosprotos_defaults",
+    ],
+    srcs: [
+        "src/stress_test.cc",
+        "src/util.cc",
+    ],
+    include_dirs: ["."],
+    header_libs: [
+        "nos_headers",
+    ],
+    static_libs: [
+        "libgmock",
+        "libgtest",
+    ],
+    shared_libs: [
+        "libnos",
+        "libnos_client_citadel",
+        "libnosprotos",
+        "nugget_tools",
+        "libprotobuf-cpp-full",
+    ],
+}
