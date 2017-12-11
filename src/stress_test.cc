@@ -13,6 +13,7 @@
 
 using google::protobuf::Empty;
 using nugget::app::protoapi::APImessageID;
+using nugget::app::protoapi::Notice;
 using nugget::app::protoapi::OneofTestParametersCase;
 using nugget::app::protoapi::OneofTestResultsCase;
 using std::unique_ptr;
@@ -69,6 +70,13 @@ int main(void) {
     std::cerr << "Unexpected received message type: "
               << nugget::app::protoapi::APImessageID_Name(
                   (APImessageID)msg.type) << " (" << msg.type << ")\n";
+    if (msg.type == APImessageID::NOTICE) {
+      Notice notice;
+      if (notice.ParseFromArray(
+          reinterpret_cast<char *>(msg.data), msg.data_len)) {
+        std::cerr << notice.DebugString();
+      }
+    }
     return 1;
   }
 
