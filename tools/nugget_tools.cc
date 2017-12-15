@@ -56,19 +56,6 @@ bool RebootNugget(nos::NuggetClientInterface *client, uint8_t type) {
     return false;
   };
 
-  // Reset the SPI interface.
-  client->Close();
-  // Time to wait until expecting citadel to be ready after reboot request.
-  // This number comes from rebooting citadel on both soft and hard mode to
-  // find how much delay is required for Open() to not lock up and tripling it.
-  const auto REBOOT_DELAY = std::chrono::microseconds(40000);
-  std::this_thread::sleep_for(REBOOT_DELAY);
-  client->Open();
-  if (!client->IsOpen()) {
-    LOG(ERROR) << "Open() failed!\n";
-    return false;
-  }
-
   // Verify that the monotonic counter a reasonable value.
   if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_CYCLES_SINCE_BOOT,
                       input_buffer,
