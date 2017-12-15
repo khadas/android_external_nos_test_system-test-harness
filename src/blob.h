@@ -38,7 +38,8 @@ struct blob_ec {
 
 struct blob_sym {
 	/* TODO: max HMAC key size? */
-	uint8_t bytes[32];
+        uint32_t key_bits;
+        uint8_t bytes[32];
 } __attribute__((packed));
 
 enum blob_alg : uint32_t {
