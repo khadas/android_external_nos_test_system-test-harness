@@ -23,6 +23,7 @@ using std::stringstream;
 using std::unique_ptr;
 
 DEFINE_bool(nos_test_dump_protos, false, "Dump binary protobufs to a file.");
+DEFINE_int32(test_input_number, -1, "Run a specific test input.");
 
 #define ASSERT_MSG_TYPE(msg, type_) \
 do{if(type_ != APImessageID::NOTICE && msg.type == APImessageID::NOTICE){ \
@@ -52,11 +53,9 @@ class NuggetOsTest: public testing::Test {
 
  public:
   static unique_ptr<test_harness::TestHarness> harness;
-  static std::random_device random_number_generator;
 };
 
 unique_ptr<test_harness::TestHarness> NuggetOsTest::harness;
-std::random_device NuggetOsTest::random_number_generator;
 
 void NuggetOsTest::SetUpTestCase() {
   harness = unique_ptr<test_harness::TestHarness>(
@@ -83,7 +82,13 @@ TEST_F(NuggetOsTest, AesGcm) {
   harness->setVerbosity(verbosity - 1);
   harness->ReadUntil(test_harness::BYTE_TIME * 1024);
 
-  for (size_t i = 0; i < ARRAYSIZE(NIST_GCM_DATA); i++) {
+  size_t i = 0;
+  size_t test_input_count = ARRAYSIZE(NIST_GCM_DATA);
+  if (FLAGS_test_input_number != -1) {
+    i = FLAGS_test_input_number;
+    test_input_count = FLAGS_test_input_number + 1;
+  }
+  for (; i < test_input_count; i++) {
     const gcm_data *test_case = &NIST_GCM_DATA[i];
 
     AesGcmEncryptTest request;
@@ -121,27 +126,39 @@ TEST_F(NuggetOsTest, AesGcm) {
     ASSERT_EQ(result.cipher_text().size(), test_case->PT_len / 8)
             << "\n" << result.DebugString();
     const uint8_t *CT = (const uint8_t *)test_case->CT;
-    stringstream ss;
+    stringstream ct_ss;
     for (size_t j = 0; j < test_case->PT_len / 8; j++) {
       if (CT[j] < 16) {
-        ss << '0';
+        ct_ss << '0';
       }
-      ss << std::hex << (unsigned int)CT[j];
+      ct_ss << std::hex << (unsigned int)CT[j];
     }
     for (size_t j = 0; j < test_case->PT_len / 8; j++) {
       ASSERT_EQ(result.cipher_text()[j] & 0x00FF, CT[j] & 0x00FF)
               << "\n"
               << "test_case: " << i << "\n"
               << "result   : " << result.DebugString()
-              << "CT       : " << ss.str() << "\n"
+              << "CT       : " << ct_ss.str() << "\n"
               << "mis-match: " << j;
     }
 
     ASSERT_EQ(result.tag().size(), test_case->tag_len / 8)
             << "\n" << result.DebugString();
     const uint8_t *tag = (const uint8_t *)test_case->tag;
+    stringstream tag_ss;
     for (size_t j = 0; j < test_case->tag_len / 8; j++) {
-      ASSERT_EQ(result.tag()[j] & 0x00ff, tag[j] & 0x00ff);
+      if (tag[j] < 16) {
+        tag_ss << '0';
+      }
+      tag_ss << std::hex << (unsigned int)tag[j];
+    }
+    for (size_t j = 0; j < test_case->tag_len / 8; j++) {
+      ASSERT_EQ(result.tag()[j] & 0x00ff, tag[j] & 0x00ff)
+              << "\n"
+              << "test_case: " << i << "\n"
+              << "result   : " << result.DebugString()
+              << "TAG      : " << tag_ss.str() << "\n"
+              << "mis-match: " << j;
     }
   }
 
