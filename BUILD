@@ -9,7 +9,6 @@ cc_binary(
     name = "runtests",
     srcs = [
         "src/aes-cmac-tests.cc",
-        "src/asn1-tests.cc",
         "src/gtest_with_gflags_main.cc",
         "src/keymaster-import-key-tests.cc",
         "src/nugget_core_tests.cc",
@@ -106,6 +105,5 @@ cc_library(
     srcs = [],
     hdrs = [
         "src/test-data/dcrypto/aes-cmac-rfc4493.h",
-        "src/test-data/dcrypto/asn1-data.h",
     ],
 )
