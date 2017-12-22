@@ -27,6 +27,6 @@ cc_library {
         "libnos_client_citadel",
         "libnos_citadeld_proxy",
     ],
-    defaults: ["nos_cc_defaults"],
+    defaults: ["nos_base_cc_defaults"],
     export_include_dirs: ["."],
 }
