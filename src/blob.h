@@ -17,9 +17,16 @@ struct LITE_RSA {
 
 
 /* TODO: maybe use protos? */
-struct blob_enforcements {
+struct blob_params {
 	uint32_t tag;
-	uint32_t value;  /* TODO: may need buffer here. */
+        uint32_t integer;
+	uint64_t long_integer;
+        /* TODO: save space for opaque data (APP_DATA etc). */
+} __attribute__((packed));
+
+struct blob_enforcements {
+        uint32_t params_count;
+        struct blob_params params[16];
 } __attribute__((packed));
 
 struct blob_rsa {
@@ -61,7 +68,9 @@ struct km_blob {
 	struct {
 		uint32_t magic;
 		uint32_t version;
-		struct blob_enforcements enforced[16];
+                /* TODO: is sw_enforced expected to be managed by h/w? */
+                struct blob_enforcements sw_enforced;
+		struct blob_enforcements tee_enforced;
 		enum blob_alg algorithm;
 		union {
 			struct blob_rsa rsa;
