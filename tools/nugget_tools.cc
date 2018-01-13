@@ -43,52 +43,50 @@ std::unique_ptr<nos::NuggetClientInterface> MakeNuggetClient() {
 #endif
 }
 
+bool CyclesSinceBoot(nos::NuggetClientInterface *client, uint32_t *cycles) {
+  std::vector<uint8_t> buffer;
+  buffer.reserve(sizeof(uint32_t));
+  if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_CYCLES_SINCE_BOOT,
+                      buffer, &buffer) != app_status::APP_SUCCESS) {
+    LOG(ERROR) << "CallApp(..., NUGGET_PARAM_CYCLES_SINCE_BOOT, ...) failed!\n";
+    return false;
+  };
+  if (buffer.size() != sizeof(uint32_t)) {
+    LOG(ERROR) << "Unexpected size of cycle count!\n";
+    return false;
+  }
+  *cycles = le32toh(*reinterpret_cast<uint32_t *>(buffer.data()));
+  return true;
+}
+
 bool RebootNugget(nos::NuggetClientInterface *client, uint8_t type) {
-  // 0 = soft reboot, 1 = hard reboot
-  std::vector<uint8_t> input_buffer(1, type);
-  std::vector<uint8_t> output_buffer;
-  output_buffer.reserve(sizeof(uint32_t));
   // Capture the time here to allow for some tolerance on the reported time.
   auto start = high_resolution_clock::now();
 
   // See what time Nugget OS has now
-  if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_CYCLES_SINCE_BOOT,
-                      input_buffer,
-                      &output_buffer) != app_status::APP_SUCCESS) {
-    LOG(ERROR) << "CallApp(..., NUGGET_PARAM_CYCLES_SINCE_BOOT, ...) failed!\n";
-    return false;
-  };
-  if (output_buffer.size() != sizeof(uint32_t)) {
-    LOG(ERROR) << "Unexpected size of output!\n";
+  uint32_t pre_reboot;
+  if (!CyclesSinceBoot(client, &pre_reboot)) {
     return false;
   }
-  uint32_t pre_reboot = *reinterpret_cast<uint32_t *>(output_buffer.data());
 
-  // Tell it to reboot
+  // Tell it to reboot: 0 = soft reboot, 1 = hard reboot
+  std::vector<uint8_t> input_buffer(1, type);
   if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer,
-                      &output_buffer) != app_status::APP_SUCCESS) {
+                      nullptr) != app_status::APP_SUCCESS) {
     LOG(ERROR) << "CallApp(..., NUGGET_PARAM_REBOOT, ...) failed!\n";
     return false;
-  };
+  }
 
   // See what time Nugget OS has after rebooting.
-  if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_CYCLES_SINCE_BOOT,
-                      input_buffer,
-                      &output_buffer) != app_status::APP_SUCCESS) {
-    LOG(ERROR) << "CallApp(..., NUGGET_PARAM_CYCLES_SINCE_BOOT, ...) failed!\n";
-    return false;
-  };
-  if (output_buffer.size() != sizeof(uint32_t)) {
-    LOG(ERROR) << "Unexpected size of output!\n";
+  uint32_t post_reboot;
+  if (!CyclesSinceBoot(client, &post_reboot)) {
     return false;
   }
-  uint32_t post_reboot = *reinterpret_cast<uint32_t *>(output_buffer.data());
 
   // Hard reboots reset the clock to zero, but soft reboots should keep counting
   if (!type) {
     // Make sure time advanced
-    if (std::chrono::microseconds(post_reboot) <=
-	std::chrono::microseconds(pre_reboot)) {
+    if (post_reboot <= pre_reboot) {
       LOG(ERROR) << "pre_reboot time (" << pre_reboot << ") should be less than "
                  << "post_reboot time (" << post_reboot << ")\n";
       return false;
@@ -104,8 +102,8 @@ bool RebootNugget(nos::NuggetClientInterface *client, uint8_t type) {
           105 / 100;
   if (std::chrono::microseconds(post_reboot) > threshold_microseconds ) {
     LOG(ERROR) << "Counter is " << post_reboot
-	       << " but is expected to be less than "
-	       << threshold_microseconds.count() * 1.05 << "!\n";
+               << " but is expected to be less than "
+               << threshold_microseconds.count() * 1.05 << "!\n";
     return false;
   }
 
