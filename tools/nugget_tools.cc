@@ -112,4 +112,11 @@ bool RebootNugget(nos::NuggetClientInterface *client, uint8_t type) {
   return true;
 }
 
+uint32_t WaitForSleep() {
+  constexpr uint32_t wait_seconds = 5;
+  std::this_thread::sleep_for(std::chrono::seconds(wait_seconds));
+  // TODO: Can we check it has gone to sleep?
+  return wait_seconds;
+}
+
 }  // namespace nugget_tools

@@ -21,7 +21,9 @@ int main(int argc, char** argv) {
       "NuggetCoreTest.HardRebootTest",
       "WeaverTest.WriteHardRebootRead",
       "WeaverTest.ReadThrottleAfterHardReboot",
-      "WeaverTest.ReadAttemptCounterPersistsHardReboot",};
+      "WeaverTest.ReadThrottleAfterSleep",
+      "WeaverTest.ReadAttemptCounterPersistsHardReboot",
+  };
 
   testing::InitGoogleMock(&argc, argv);
 #ifndef ANDROID
