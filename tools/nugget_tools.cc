@@ -9,6 +9,7 @@
 #include <vector>
 
 #ifdef ANDROID
+#include <android-base/endian.h>
 #include "nos/CitadeldProxyClient.h"
 #else
 #include "gflags/gflags.h"
