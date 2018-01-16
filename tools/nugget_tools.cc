@@ -49,6 +49,7 @@ bool CyclesSinceBoot(nos::NuggetClientInterface *client, uint32_t *cycles) {
   buffer.reserve(sizeof(uint32_t));
   if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_CYCLES_SINCE_BOOT,
                       buffer, &buffer) != app_status::APP_SUCCESS) {
+    perror("test");
     LOG(ERROR) << "CallApp(..., NUGGET_PARAM_CYCLES_SINCE_BOOT, ...) failed!\n";
     return false;
   };
@@ -77,6 +78,8 @@ bool RebootNugget(nos::NuggetClientInterface *client, uint8_t type) {
     LOG(ERROR) << "CallApp(..., NUGGET_PARAM_REBOOT, ...) failed!\n";
     return false;
   }
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
   // See what time Nugget OS has after rebooting.
   uint32_t post_reboot;
