@@ -19,6 +19,9 @@ std::unique_ptr<nos::NuggetClientInterface> MakeNuggetClient();
 
 bool RebootNugget(nos::NuggetClientInterface *client, uint8_t type);
 
+// Returns an underestimate of the number of seconds waited.
+uint32_t WaitForSleep();
+
 }  // namespace nugget_tools
 
 #endif  // NUGGET_TOOLS_H
