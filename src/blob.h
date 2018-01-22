@@ -15,29 +15,28 @@ struct LITE_RSA {
 	struct LITE_BIGNUM d;
 } __attribute__((packed));
 
-
 /* TODO: maybe use protos? */
 struct blob_params {
 	uint32_t tag;
-        uint32_t integer;
+	uint32_t integer;
 	uint64_t long_integer;
-        /* TODO: save space for opaque data (APP_DATA etc). */
+	/* TODO: save space for opaque data (APP_DATA etc). */
 } __attribute__((packed));
 
 struct blob_enforcements {
-        uint32_t params_count;
-        struct blob_params params[16];
+	uint32_t params_count;
+	/* TODO: sizeof(proto-params) instead of constant here. */
+	struct blob_params params[20];
 } __attribute__((packed));
 
 struct blob_rsa {
-	struct  LITE_RSA rsa;
+	struct	LITE_RSA rsa;
 	uint8_t N_bytes[4096 >> 3];
 	uint8_t d_bytes[4096 >> 3];
 } __attribute__((packed));
 
 struct blob_ec {
 	uint32_t curve;
-	/* TODO: up this size once 384, 521 support is done. */
 	uint8_t d[32];
 	uint8_t x[32];
 	uint8_t y[32];
@@ -45,11 +44,11 @@ struct blob_ec {
 
 struct blob_sym {
 	/* TODO: max HMAC key size? */
-        uint32_t key_bits;
-        uint8_t bytes[32];
+	uint32_t key_bits;
+	uint8_t bytes[2048 >> 3];
 } __attribute__((packed));
 
-enum blob_alg : uint32_t {
+enum blob_alg {
 	BLOB_RSA = 1,
 	BLOB_EC = 2,
 	BLOB_AES = 3,
@@ -57,7 +56,7 @@ enum blob_alg : uint32_t {
 	BLOB_HMAC = 5,
 };
 
-#define KM_BLOB_MAGIC   0x474F4F47
+#define KM_BLOB_MAGIC	0x474F4F47
 #define KM_BLOB_VERSION 1
 
 struct km_blob {
@@ -68,13 +67,13 @@ struct km_blob {
 	struct {
 		uint32_t magic;
 		uint32_t version;
-                /* TODO: is sw_enforced expected to be managed by h/w? */
-                struct blob_enforcements sw_enforced;
+		/* TODO: is sw_enforced expected to be managed by h/w? */
+		struct blob_enforcements sw_enforced;
 		struct blob_enforcements tee_enforced;
-		enum blob_alg algorithm;
+		uint32_t algorithm;
 		union {
 			struct blob_rsa rsa;
-			struct blob_ec  ec;
+			struct blob_ec	ec;
 			struct blob_sym sym;
 		} key;
 		/* TODO: pad to block size. */
@@ -82,4 +81,4 @@ struct km_blob {
 	uint8_t hmac[32];
 } __attribute__((packed));
 
-#endif  // SRC_BLOB_H
+#endif	// SRC_BLOB_H
