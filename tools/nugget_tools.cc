@@ -128,4 +128,11 @@ uint32_t WaitForSleep() {
   return wait_seconds;
 }
 
+bool WipeUserData(nos::NuggetClientInterface *client) {
+  std::vector<uint8_t> buffer(4);
+  *reinterpret_cast<uint32_t *>(buffer.data()) = htole32(ERASE_CONFIRMATION);
+  return client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_NUKE_FROM_ORBIT,
+                         buffer, nullptr) == app_status::APP_SUCCESS;
+}
+
 }  // namespace nugget_tools
