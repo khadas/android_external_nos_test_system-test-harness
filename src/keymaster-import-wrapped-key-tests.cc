@@ -184,7 +184,7 @@ const uint8_t IMPORTED_KEY[32] = {
   0x7f, 0x97, 0x04, 0xe6, 0x79, 0x29, 0xff, 0xcf
 };
 
-TEST_F(ImportWrappedKeyTest, ImportSuccess) {
+TEST_F(ImportWrappedKeyTest, DISABLED_ImportSuccess) {
   ImportWrappedKeyRequest request;
   ImportKeyResponse response;
   const uint8_t masking_key[32] = {};
