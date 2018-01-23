@@ -60,5 +60,14 @@ TEST_F(NuggetCoreTest, HardRebootTest) {
   ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_HARD));
 }
 
+TEST_F(NuggetCoreTest, GetLowPowerStats) {
+  vector<uint8_t> buffer;
+  buffer.reserve(10);                           // TBD. No results yet.
+  ASSERT_NO_ERROR(NuggetCoreTest::client->CallApp(
+      APP_ID_NUGGET, NUGGET_PARAM_GET_LOW_POWER_STATS,
+      buffer, &buffer));
+  // TODO(b/70510004): Verify meaningful values
+  ASSERT_EQ(buffer.size(), 0u);
+}
 
 }  // namespace
