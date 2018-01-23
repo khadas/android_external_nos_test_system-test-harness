@@ -61,13 +61,22 @@ TEST_F(NuggetCoreTest, HardRebootTest) {
 }
 
 TEST_F(NuggetCoreTest, GetLowPowerStats) {
+  struct nugget_app_low_power_stats stats;
   vector<uint8_t> buffer;
-  buffer.reserve(10);                           // TBD. No results yet.
+
+  buffer.reserve(1000);                         // Much more than needed
   ASSERT_NO_ERROR(NuggetCoreTest::client->CallApp(
       APP_ID_NUGGET, NUGGET_PARAM_GET_LOW_POWER_STATS,
       buffer, &buffer));
-  // TODO(b/70510004): Verify meaningful values
-  ASSERT_EQ(buffer.size(), 0u);
+  ASSERT_GE(buffer.size(), sizeof(stats));
+
+  memcpy(&stats, buffer.data(), sizeof(stats));
+
+  /* We must have booted once and been awake long enough to reply, but that's
+   * about all we can be certain of. */
+  ASSERT_GT(stats.hard_reset_count, 0UL);
+  ASSERT_GT(stats.time_since_hard_reset, 0UL);
+  ASSERT_GT(stats.time_spent_awake, 0UL);
 }
 
 }  // namespace
