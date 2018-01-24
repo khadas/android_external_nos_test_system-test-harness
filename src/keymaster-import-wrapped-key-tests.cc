@@ -48,6 +48,8 @@ void ImportWrappedKeyTest::TearDownTestCase() {
   client = unique_ptr<nos::NuggetClientInterface>();
 }
 
+/* Wrapped key DER just for reference; fields below have been pulled
+ * out from here. */
 /*const static uint8_t WRAPPED_KEY_DER[] = {
   0x30, 0x82, 0x01, 0x5f, 0x02, 0x01, 0x00, 0x04, 0x82, 0x01, 0x00, 0x5e,
   0x46, 0xac, 0x96, 0x21, 0x12, 0x0e, 0x1f, 0x4c, 0x45, 0x92, 0x5f, 0xe2,
@@ -184,7 +186,7 @@ const uint8_t IMPORTED_KEY[32] = {
   0x7f, 0x97, 0x04, 0xe6, 0x79, 0x29, 0xff, 0xcf
 };
 
-TEST_F(ImportWrappedKeyTest, DISABLED_ImportSuccess) {
+TEST_F(ImportWrappedKeyTest, ImportSuccess) {
   ImportWrappedKeyRequest request;
   ImportKeyResponse response;
   const uint8_t masking_key[32] = {};
