@@ -192,6 +192,7 @@ TEST_F(ImportWrappedKeyTest, ImportSuccess) {
   const uint8_t masking_key[32] = {};
   struct km_blob blob;
 
+  /* TODO: do key generation via rpc. */
   memset(&blob, 0, sizeof(blob));
   blob.b.algorithm = BLOB_RSA;
   blob.b.key.rsa.rsa.e = 65537;
@@ -200,6 +201,13 @@ TEST_F(ImportWrappedKeyTest, ImportSuccess) {
 
   memcpy(&blob.b.key.rsa.N_bytes, wrapping_key_N, sizeof(wrapping_key_N));
   memcpy(&blob.b.key.rsa.d_bytes, wrapping_key_D, sizeof(wrapping_key_D));
+
+  blob.b.tee_enforced.params[0].tag = Tag::PADDING;
+  blob.b.tee_enforced.params[0].integer = PaddingMode::PADDING_RSA_OAEP;
+  blob.b.tee_enforced.params_count++;
+  blob.b.tee_enforced.params[1].tag = Tag::PURPOSE;
+  blob.b.tee_enforced.params[1].integer = KeyPurpose::WRAP_KEY;
+  blob.b.tee_enforced.params_count++;
 
   request.set_key_format(KeyFormat::RAW);
   KeyParameters *params = request.mutable_params();
