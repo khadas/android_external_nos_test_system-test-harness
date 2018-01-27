@@ -48,7 +48,9 @@ void ImportWrappedKeyTest::TearDownTestCase() {
   client = unique_ptr<nos::NuggetClientInterface>();
 }
 
-const static uint8_t WRAPPED_KEY_DER[] = {
+/* Wrapped key DER just for reference; fields below have been pulled
+ * out from here. */
+/*const static uint8_t WRAPPED_KEY_DER[] = {
   0x30, 0x82, 0x01, 0x5f, 0x02, 0x01, 0x00, 0x04, 0x82, 0x01, 0x00, 0x5e,
   0x46, 0xac, 0x96, 0x21, 0x12, 0x0e, 0x1f, 0x4c, 0x45, 0x92, 0x5f, 0xe2,
   0x43, 0x5c, 0xac, 0x77, 0xc7, 0x71, 0x62, 0xdb, 0x0c, 0xda, 0xc4, 0x89,
@@ -79,7 +81,7 @@ const static uint8_t WRAPPED_KEY_DER[] = {
   0xf5, 0xbe, 0xab, 0xe2, 0x69, 0x1b, 0xc8, 0x2d, 0xde, 0x2a, 0x7a, 0xa9,
   0x10, 0x04, 0x10, 0x0a, 0xa4, 0x6a, 0x14, 0xa0, 0x24, 0x90, 0xea, 0xf5,
   0xef, 0x32, 0x86, 0x2e, 0x4c, 0x03, 0x4e
-};
+};*/
 
 static const uint8_t RSA_ENVELOPE[] = {
   0x99, 0xb0, 0xad, 0xd4, 0xe4, 0x0c, 0x82, 0x37, 0x33, 0x0c, 0x12, 0xe1,
@@ -190,6 +192,7 @@ TEST_F(ImportWrappedKeyTest, ImportSuccess) {
   const uint8_t masking_key[32] = {};
   struct km_blob blob;
 
+  /* TODO: do key generation via rpc. */
   memset(&blob, 0, sizeof(blob));
   blob.b.algorithm = BLOB_RSA;
   blob.b.key.rsa.rsa.e = 65537;
@@ -198,6 +201,13 @@ TEST_F(ImportWrappedKeyTest, ImportSuccess) {
 
   memcpy(&blob.b.key.rsa.N_bytes, wrapping_key_N, sizeof(wrapping_key_N));
   memcpy(&blob.b.key.rsa.d_bytes, wrapping_key_D, sizeof(wrapping_key_D));
+
+  blob.b.tee_enforced.params[0].tag = Tag::PADDING;
+  blob.b.tee_enforced.params[0].integer = PaddingMode::PADDING_RSA_OAEP;
+  blob.b.tee_enforced.params_count++;
+  blob.b.tee_enforced.params[1].tag = Tag::PURPOSE;
+  blob.b.tee_enforced.params[1].integer = KeyPurpose::WRAP_KEY;
+  blob.b.tee_enforced.params_count++;
 
   request.set_key_format(KeyFormat::RAW);
   KeyParameters *params = request.mutable_params();
