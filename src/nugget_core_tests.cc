@@ -52,25 +52,6 @@ TEST_F(NuggetCoreTest, GetVersionStringTest) {
   ASSERT_GT(output_buffer.size(), 0u);
 }
 
-// ./test_app --id 0 -p beef a b c d e f
-TEST_F(NuggetCoreTest, ReverseStringTest) {
-  const char test_string[] = "a b c d e f";
-  ASSERT_LT(sizeof(test_string), input_buffer.capacity());
-  input_buffer.resize(sizeof(test_string));
-  std::copy(test_string, test_string + sizeof(test_string),
-            input_buffer.begin());
-
-  ASSERT_NO_ERROR(NuggetCoreTest::client->CallApp(
-      APP_ID_NUGGET, NUGGET_PARAM_REVERSE, input_buffer, &output_buffer));
-
-  ASSERT_EQ(output_buffer.size(), sizeof(test_string));
-
-  for (size_t x = 0; x < sizeof(test_string); ++x) {
-    ASSERT_EQ(test_string[sizeof(test_string) - 1 - x],
-              output_buffer[x]) << "Failure at index: " << x;
-  }
-}
-
 TEST_F(NuggetCoreTest, SoftRebootTest) {
   ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_SOFT));
 }
@@ -79,5 +60,23 @@ TEST_F(NuggetCoreTest, HardRebootTest) {
   ASSERT_TRUE(nugget_tools::RebootNugget(client.get(), NUGGET_REBOOT_HARD));
 }
 
+TEST_F(NuggetCoreTest, GetLowPowerStats) {
+  struct nugget_app_low_power_stats stats;
+  vector<uint8_t> buffer;
+
+  buffer.reserve(1000);                         // Much more than needed
+  ASSERT_NO_ERROR(NuggetCoreTest::client->CallApp(
+      APP_ID_NUGGET, NUGGET_PARAM_GET_LOW_POWER_STATS,
+      buffer, &buffer));
+  ASSERT_GE(buffer.size(), sizeof(stats));
+
+  memcpy(&stats, buffer.data(), sizeof(stats));
+
+  /* We must have booted once and been awake long enough to reply, but that's
+   * about all we can be certain of. */
+  ASSERT_GT(stats.hard_reset_count, 0UL);
+  ASSERT_GT(stats.time_since_hard_reset, 0UL);
+  ASSERT_GT(stats.time_spent_awake, 0UL);
+}
 
 }  // namespace
