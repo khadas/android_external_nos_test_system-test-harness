@@ -79,7 +79,13 @@ bool RebootNugget(nos::NuggetClientInterface *client, uint8_t type) {
     return false;
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  if (!type) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  } else {
+    // POST (which takes ~50ms) runs on a hard-reboot, plus an
+    // additional ~30ms for RO+RW verification.
+    std::this_thread::sleep_for(std::chrono::milliseconds(80));
+  }
 
   // See what time Nugget OS has after rebooting.
   uint32_t post_reboot;
