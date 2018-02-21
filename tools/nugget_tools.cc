@@ -28,6 +28,16 @@ using std::chrono::microseconds;
 
 namespace nugget_tools {
 
+namespace {
+
+void WaitForHardReboot() {
+  // POST (which takes ~50ms) runs on a hard-reboot, plus an
+  // additional ~30ms for RO+RW verification.
+  std::this_thread::sleep_for(std::chrono::milliseconds(80));
+}
+
+} // namesapce
+
 std::unique_ptr<nos::NuggetClientInterface> MakeNuggetClient() {
 #ifdef ANDROID
   std::unique_ptr<nos::NuggetClientInterface> client =
@@ -80,11 +90,9 @@ bool RebootNugget(nos::NuggetClientInterface *client, uint8_t type) {
   }
 
   if (!type) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
   } else {
-    // POST (which takes ~50ms) runs on a hard-reboot, plus an
-    // additional ~30ms for RO+RW verification.
-    std::this_thread::sleep_for(std::chrono::milliseconds(80));
+    WaitForHardReboot();
   }
 
   // See what time Nugget OS has after rebooting.
@@ -129,10 +137,15 @@ uint32_t WaitForSleep() {
 }
 
 bool WipeUserData(nos::NuggetClientInterface *client) {
+  // Request wipe of user data which should hard reboot
   std::vector<uint8_t> buffer(4);
   *reinterpret_cast<uint32_t *>(buffer.data()) = htole32(ERASE_CONFIRMATION);
-  return client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_NUKE_FROM_ORBIT,
-                         buffer, nullptr) == app_status::APP_SUCCESS;
+  if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_NUKE_FROM_ORBIT,
+                         buffer, nullptr) != app_status::APP_SUCCESS) {
+    return false;
+  }
+  WaitForHardReboot();
+  return true;
 }
 
 }  // namespace nugget_tools
