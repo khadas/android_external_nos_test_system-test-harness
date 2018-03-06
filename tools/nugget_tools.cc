@@ -49,6 +49,13 @@ std::unique_ptr<nos::NuggetClientInterface> MakeNuggetClient() {
   }
   return client;
 #else
+  if (FLAGS_nos_core_serial.empty()) {
+    const char *env_default = secure_getenv("CITADEL_DEVICE");
+    if (env_default && *env_default) {
+      FLAGS_nos_core_serial.assign(env_default);
+      std::cerr << "Using CITADEL_DEVICE=" << FLAGS_nos_core_serial << "\n";
+    }
+  }
   return std::unique_ptr<nos::NuggetClientInterface>(
       new nos::NuggetClient(FLAGS_nos_core_serial));
 #endif
