@@ -877,4 +877,13 @@ TEST_F(AvbTest, ProductionResetTestValid)
   ASSERT_NO_ERROR(code, "");
 }
 
+TEST_F(AvbTest, WipeUserDataDoesNotLockDeviceLock) {
+  ASSERT_NO_ERROR(SetDeviceLock(0x00), "");
+  ASSERT_TRUE(nugget_tools::WipeUserData(client.get()));
+
+  uint8_t locks[4];
+  GetState(client.get(), nullptr, nullptr, locks);
+  EXPECT_EQ(locks[DEVICE], 0x00);
+}
+
 }  // namespace
