@@ -1,4 +1,3 @@
-
 #include <memory>
 
 #include "gtest/gtest.h"
@@ -13,7 +12,6 @@
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
-
 
 using std::cout;
 using std::string;
@@ -63,13 +61,13 @@ class AvbTest: public testing::Test {
   const uint64_t LAST_NONCE = 0x4141414141414140ULL;
   const uint64_t VERSION = 1;
   const uint64_t NONCE = 0x4141414141414141ULL;
-  const uint8_t DEVICE_DATA[32] = {
+  const uint8_t DEVICE_DATA[AVB_DEVICE_DATA_SIZE] = {
     0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42,
     0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42,
     0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42,
     0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42,
   };
-  const uint8_t SIGNATURE[256] = {
+  const uint8_t SIGNATURE[AVB_SIGNATURE_SIZE] = {
     0x68, 0x86, 0x9a, 0x16, 0xca, 0x62, 0xea, 0xa9,
     0x9b, 0xa0, 0x51, 0x03, 0xa6, 0x00, 0x3f, 0xe8,
     0xf1, 0x43, 0xe6, 0xb7, 0xde, 0x76, 0xfe, 0x21,
@@ -471,7 +469,7 @@ void AvbTest::ResetProduction(void)
 
 TEST_F(AvbTest, CarrierLockTest)
 {
-  uint8_t carrier_data[AVB_METADATA_MAX_SIZE];
+  uint8_t carrier_data[AVB_DEVICE_DATA_SIZE];
   uint8_t locks[4];
   int code;
 
@@ -584,7 +582,7 @@ TEST_F(AvbTest, BootLockTest)
 
   // Test cannot set lock while carrier set
   SetBootloader();
-  code = SetCarrierLock(0x34, NULL, 0);
+  code = SetCarrierLock(0x34, DEVICE_DATA, sizeof(DEVICE_DATA));
   ASSERT_NO_ERROR(code);
 
   code = SetBootLock(0x56);
@@ -706,7 +704,7 @@ TEST_F(AvbTest, ProductionMode)
   code = SetOwnerLock(0x22, NULL, 0);
   ASSERT_NO_ERROR(code);
 
-  code = SetCarrierLock(0x33, NULL, 0);
+  code = SetCarrierLock(0x33, DEVICE_DATA, sizeof(DEVICE_DATA));
   ASSERT_NO_ERROR(code);
 
   code = SetDeviceLock(0x44);
