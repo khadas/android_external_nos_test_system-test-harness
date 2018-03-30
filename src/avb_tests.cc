@@ -461,6 +461,9 @@ TEST_F(AvbTest, BootLockTest)
 {
   uint8_t locks[4];
   int code;
+  // Test production logic.
+  code = SetProduction(client.get(), true, NULL, 0);
+  ASSERT_NO_ERROR(code);
 
   // Test cannot set lock
   code = SetBootLock(0x12);
@@ -469,51 +472,75 @@ TEST_F(AvbTest, BootLockTest)
   GetState(client.get(), NULL, NULL, locks);
   ASSERT_EQ(locks[BOOT], 0x00);
 
-  // Test cannot set lock while carrier set
+  // Show the bootloader setting and unsetting.
   SetBootloader();
+  code = SetBootLock(0x12);
+  ASSERT_NO_ERROR(code);
+
+  GetState(client.get(), NULL, NULL, locks);
+  ASSERT_EQ(locks[BOOT], 0x12);
+
+  code = SetBootLock(0x0);
+  ASSERT_NO_ERROR(code);
+
+  GetState(client.get(), NULL, NULL, locks);
+  ASSERT_EQ(locks[BOOT], 0x00);
+
+  // Test cannot unset lock while carrier set
+  ResetProduction(client.get());
+  code = Reset(client.get(), ResetRequest::LOCKS, NULL, 0);
+  ASSERT_NO_ERROR(code);
+
   code = SetCarrierLock(0x34, DEVICE_DATA, sizeof(DEVICE_DATA));
   ASSERT_NO_ERROR(code);
 
+  code = SetProduction(client.get(), true, NULL, 0);
+  ASSERT_NO_ERROR(code);
+
+  // Can lock when carrier lock is set.
   code = SetBootLock(0x56);
+  ASSERT_NO_ERROR(code);
+
+  // Cannot unlock.
+  code = SetBootLock(0x0);
+  ASSERT_EQ(code, APP_ERROR_AVB_DENIED);
+
+  // Or change the value.
+  code = SetBootLock(0x42);
   ASSERT_EQ(code, APP_ERROR_AVB_DENIED);
 
   GetState(client.get(), NULL, NULL, locks);
   ASSERT_EQ(locks[CARRIER], 0x34);
-  ASSERT_EQ(locks[BOOT], 0x00);
+  ASSERT_EQ(locks[BOOT], 0x56);
 
-  // Test cannot set lock while device also set
+  // Clear the locks to show device lock enforcement.
+  ResetProduction(client.get());
+  code = Reset(client.get(), ResetRequest::LOCKS, NULL, 0);
+  ASSERT_NO_ERROR(code);
+  code = SetProduction(client.get(), true, NULL, 0);
+  ASSERT_NO_ERROR(code);
+
+  // Need to be in the HLOS.
+  code = SetDeviceLock(0x78);
+  ASSERT_EQ(code, APP_ERROR_AVB_HLOS);
+
+  BootloaderDone();
   code = SetDeviceLock(0x78);
   ASSERT_NO_ERROR(code);
 
+  // We can move to a locked state when
+  // device lock is true.
+  SetBootloader();
   code = SetBootLock(0x9A);
+  ASSERT_NO_ERROR(code);
+
+  // But we can't move back.
+  code = SetBootLock(0x0);
   ASSERT_EQ(code, APP_ERROR_AVB_DENIED);
 
   GetState(client.get(), NULL, NULL, locks);
   ASSERT_EQ(locks[DEVICE], 0x78);
-  ASSERT_EQ(locks[BOOT], 0x00);
-
-  // Test cannot set lock while device set
-  code = SetCarrierLock(0x00, NULL, 0);
-  ASSERT_NO_ERROR(code);
-
-  code = SetBootLock(0xBC);
-  ASSERT_EQ(code, APP_ERROR_AVB_DENIED);
-
-  GetState(client.get(), NULL, NULL, locks);
-  ASSERT_EQ(locks[CARRIER], 0x00);
-  ASSERT_EQ(locks[DEVICE], 0x78);
-  ASSERT_EQ(locks[BOOT], 0x00);
-
-  // Test can set lock
-  code = SetDeviceLock(0x00);
-  ASSERT_NO_ERROR(code);
-
-  code = SetBootLock(0xDE);
-  ASSERT_NO_ERROR(code);
-
-  GetState(client.get(), NULL, NULL, locks);
-  ASSERT_EQ(locks[DEVICE], 0x00);
-  ASSERT_EQ(locks[BOOT], 0xDE);
+  ASSERT_EQ(locks[BOOT], 0x9A);
 }
 
 TEST_F(AvbTest, OwnerLockTest)
