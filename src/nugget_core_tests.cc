@@ -56,7 +56,7 @@ TEST_F(NuggetCoreTest, GetDeviceIdTest) {
   ASSERT_NO_ERROR(NuggetCoreTest::client->CallApp(
       APP_ID_NUGGET, NUGGET_PARAM_DEVICE_ID, input_buffer, &output_buffer));
   ASSERT_EQ(output_buffer.size(), 18u);
-  for (size_t i; i < output_buffer.size(); i++) {
+  for (size_t i = 0; i < output_buffer.size(); i++) {
     if (i == 8) {
       ASSERT_EQ(output_buffer[i], ':');
     } else if (i == 17) {
