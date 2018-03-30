@@ -747,7 +747,7 @@ TEST_F(AvbTest, GetResetChallengeTest)
   ASSERT_LE(sizeof(data), len);
   ASSERT_NO_ERROR(code, "");
   EXPECT_NE(0ULL, nonce);
-  EXPECT_EQ((uint32_t)ResetToken::CURRENT, selector);
+  EXPECT_LE(selector, (uint32_t)ResetToken::CURRENT);
   EXPECT_EQ(32UL, len);
   // We didn't set a device id.
   EXPECT_EQ(0, memcmp(data, empty, sizeof(empty)));
