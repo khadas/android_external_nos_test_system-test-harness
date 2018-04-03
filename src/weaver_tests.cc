@@ -83,7 +83,7 @@ void WeaverTest::testWrite(const string& msg, uint32_t slot, const uint8_t *key,
   request.set_value(value, VALUE_SIZE);
 
   Weaver service(*client);
-  ASSERT_NO_ERROR(service.Write(request, &response)) << msg;
+  ASSERT_NO_ERROR(service.Write(request, &response), msg);
 }
 
 void WeaverTest::testRead(const string& msg, uint32_t slot, const uint8_t *key,
@@ -94,7 +94,7 @@ void WeaverTest::testRead(const string& msg, uint32_t slot, const uint8_t *key,
   request.set_key(key, KEY_SIZE);
 
   Weaver service(*client);
-  ASSERT_NO_ERROR(service.Read(request, &response)) << msg;
+  ASSERT_NO_ERROR(service.Read(request, &response), msg);
   ASSERT_EQ(response.error(), ReadResponse::NONE) << msg;
   ASSERT_EQ(response.throttle_msec(), 0u) << msg;
   auto response_value = response.value();
@@ -110,7 +110,7 @@ void WeaverTest::testEraseValue(const string& msg, uint32_t slot) {
   request.set_slot(slot);
 
   Weaver service(*client);
-  ASSERT_NO_ERROR(service.EraseValue(request, &response)) << msg;
+  ASSERT_NO_ERROR(service.EraseValue(request, &response), msg);
 }
 
 void WeaverTest::testReadWrongKey(const string& msg, uint32_t slot,
@@ -121,7 +121,7 @@ void WeaverTest::testReadWrongKey(const string& msg, uint32_t slot,
   request.set_key(key, KEY_SIZE);
 
   Weaver service(*client);
-  ASSERT_NO_ERROR(service.Read(request, &response)) << msg;
+  ASSERT_NO_ERROR(service.Read(request, &response), msg);
   ASSERT_EQ(response.error(), ReadResponse::WRONG_KEY) << msg;
   ASSERT_EQ(response.throttle_msec(), throttle_sec * 1000) << msg;
   auto response_value = response.value();
@@ -139,7 +139,7 @@ void WeaverTest::testReadThrottle(const string& msg, uint32_t slot,
   request.set_key(key, KEY_SIZE);
 
   Weaver service(*client);
-  ASSERT_NO_ERROR(service.Read(request, &response)) << msg;
+  ASSERT_NO_ERROR(service.Read(request, &response), msg);
   ASSERT_EQ(response.error(), ReadResponse::THROTTLE) << msg;
   ASSERT_NE(response.throttle_msec(), 0u) << msg;
   ASSERT_LE(response.throttle_msec(), throttle_sec * 1000) << msg;
@@ -169,7 +169,7 @@ TEST_F(WeaverTest, GetConfig) {
   GetConfigResponse response;
 
   Weaver service(*client);
-  ASSERT_NO_ERROR(service.GetConfig(request, &response));
+  ASSERT_NO_ERROR(service.GetConfig(request, &response), "");
   EXPECT_EQ(response.number_of_slots(), 64u);
   EXPECT_EQ(response.key_size(), 16u);
   EXPECT_EQ(response.value_size(), 16u);
