@@ -111,6 +111,7 @@ void ResetProduction(nos::NuggetClientInterface *client)
   size_t len = sizeof(message.data);
   uint8_t signature[AVB_SIGNATURE_SIZE];
   size_t siglen = sizeof(signature);
+  memset(signature, 0, siglen);
 
   // We need the nonce to be set before we get fallthrough.
   memset(message.data, 0, sizeof(message.data));
