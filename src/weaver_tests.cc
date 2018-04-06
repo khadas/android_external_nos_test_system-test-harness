@@ -3,6 +3,7 @@
 #include <random>
 
 #include "gtest/gtest.h"
+#include "avb_tools.h"
 #include "nugget_tools.h"
 #include "nugget/app/weaver/weaver.pb.h"
 #include "Weaver.client.h"
@@ -309,6 +310,13 @@ TEST_F(WeaverTest, EraseValueInvalidSlot) {
 TEST_F(WeaverTest, WipeUserDataOnlyClearsValues) {
   testWrite(__STAMP__, WeaverTest::slot, TEST_KEY, TEST_VALUE);
   ASSERT_TRUE(nugget_tools::WipeUserData(client.get()));
+  testRead(__STAMP__, WeaverTest::slot, TEST_KEY, ZERO_VALUE);
+}
+
+TEST_F(WeaverTest, ProductionResetWipesUserData) {
+  avb_tools::SetProduction(client.get(), true, NULL, 0);
+  testWrite(__STAMP__, WeaverTest::slot, TEST_KEY, TEST_VALUE);
+  avb_tools::ResetProduction(client.get());
   testRead(__STAMP__, WeaverTest::slot, TEST_KEY, ZERO_VALUE);
 }
 
