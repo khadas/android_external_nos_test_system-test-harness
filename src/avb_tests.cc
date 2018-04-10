@@ -556,19 +556,7 @@ TEST_F(AvbTest, OwnerLockTest)
     owner_key[i + 1] = (i >> 8) & 0xFF;
   }
 
-  // This should fail when boot lock is not set
-  code = SetOwnerLock(0x21, owner_key, sizeof(owner_key));
-  ASSERT_EQ(code, APP_ERROR_AVB_DENIED);
-
-  // Set the boot lock
-  SetBootloader();
-  code = SetBootLock(0x43);
-  ASSERT_NO_ERROR(code, "");
-
-  GetState(client.get(), NULL, NULL, locks);
-  ASSERT_EQ(locks[BOOT], 0x43);
-
-  // Try the owner lock again
+  // This should pass when BOOT lock is not set
   code = SetOwnerLock(0x65, owner_key, sizeof(owner_key));
   ASSERT_NO_ERROR(code, "");
 
@@ -600,6 +588,18 @@ TEST_F(AvbTest, OwnerLockTest)
 
   GetState(client.get(), NULL, NULL, locks);
   ASSERT_EQ(locks[OWNER], 0x00);
+
+  // Set the boot lock
+  SetBootloader();
+  code = SetBootLock(0x43);
+  ASSERT_NO_ERROR(code, "");
+
+  GetState(client.get(), NULL, NULL, locks);
+  ASSERT_EQ(locks[BOOT], 0x43);
+
+  // Test setting the lock while BOOT is locked fails
+  code = SetOwnerLock(0x21, owner_key, sizeof(owner_key));
+  ASSERT_EQ(code, APP_ERROR_AVB_DENIED);
 }
 
 TEST_F(AvbTest, ProductionMode)
@@ -614,10 +614,10 @@ TEST_F(AvbTest, ProductionMode)
 
   // Set some lock values to make sure production doesn't affect them
   SetBootloader();
-  code = SetBootLock(0x11);
+  code = SetOwnerLock(0x11, NULL, 0);
   ASSERT_NO_ERROR(code, "");
 
-  code = SetOwnerLock(0x22, NULL, 0);
+  code = SetBootLock(0x22);
   ASSERT_NO_ERROR(code, "");
 
   code = SetCarrierLock(0x33, DEVICE_DATA, sizeof(DEVICE_DATA));
@@ -632,8 +632,8 @@ TEST_F(AvbTest, ProductionMode)
 
   GetState(client.get(), NULL, &production, locks);
   ASSERT_TRUE(production);
-  ASSERT_EQ(locks[BOOT], 0x11);
-  ASSERT_EQ(locks[OWNER], 0x22);
+  ASSERT_EQ(locks[OWNER], 0x11);
+  ASSERT_EQ(locks[BOOT], 0x22);
   ASSERT_EQ(locks[CARRIER], 0x33);
   ASSERT_EQ(locks[DEVICE], 0x44);
 
