@@ -20,7 +20,8 @@ namespace nugget_tools {
 
 std::unique_ptr<nos::NuggetClientInterface> MakeNuggetClient();
 
-bool RebootNugget(nos::NuggetClientInterface *client, uint8_t type);
+// Always does a hard reboot. Use WaitForSleep() if you just want deep sleep.
+bool RebootNugget(nos::NuggetClientInterface *client);
 
 // Returns true if Citadel entered deep sleep
 // Passes back an underestimate of the number of seconds waited if so.

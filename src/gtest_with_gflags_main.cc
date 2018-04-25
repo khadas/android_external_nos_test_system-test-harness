@@ -19,11 +19,15 @@ int main(int argc, char** argv) {
   const std::vector<std::string> slow_tests{
       "AvbTest.*",
       "ImportKeyTest.RSASuccess",
+      "NuggetCoreTest.EnterDeepSleep",
       "NuggetCoreTest.HardRebootTest",
-      "WeaverTest.WriteHardRebootRead",
+      "WeaverTest.ReadAttemptCounterPersistsDeepSleep",
+      "WeaverTest.ReadAttemptCounterPersistsHardReboot",
+      "WeaverTest.ReadThrottleAfterDeepSleep",
       "WeaverTest.ReadThrottleAfterHardReboot",
       "WeaverTest.ReadThrottleAfterSleep",
-      "WeaverTest.ReadAttemptCounterPersistsHardReboot",
+      "WeaverTest.WriteDeepSleepRead",
+      "WeaverTest.WriteHardRebootRead",
   };
 
   testing::InitGoogleMock(&argc, argv);

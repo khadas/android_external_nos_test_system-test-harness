@@ -81,7 +81,7 @@ bool CyclesSinceBoot(nos::NuggetClientInterface *client, uint32_t *cycles) {
   return true;
 }
 
-bool RebootNugget(nos::NuggetClientInterface *client, uint8_t type) {
+bool RebootNugget(nos::NuggetClientInterface *client) {
   // Capture the time here to allow for some tolerance on the reported time.
   auto start = high_resolution_clock::now();
 
@@ -92,18 +92,14 @@ bool RebootNugget(nos::NuggetClientInterface *client, uint8_t type) {
   }
 
   // Tell it to reboot: 0 = soft reboot, 1 = hard reboot
-  std::vector<uint8_t> input_buffer(1, type);
+  std::vector<uint8_t> input_buffer;
   if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer,
                       nullptr) != app_status::APP_SUCCESS) {
     LOG(ERROR) << "CallApp(..., NUGGET_PARAM_REBOOT, ...) failed!\n";
     return false;
   }
 
-  if (!type) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  } else {
-    WaitForHardReboot();
-  }
+  WaitForHardReboot();
 
   // See what time Nugget OS has after rebooting.
   uint32_t post_reboot;
@@ -111,18 +107,7 @@ bool RebootNugget(nos::NuggetClientInterface *client, uint8_t type) {
     return false;
   }
 
-  // Hard reboots reset the clock to zero, but soft reboots should keep counting
-  if (!type) {
-    // Make sure time advanced
-    if (post_reboot <= pre_reboot) {
-      LOG(ERROR) << "pre_reboot time (" << pre_reboot << ") should be less than "
-                 << "post_reboot time (" << post_reboot << ")\n";
-      return false;
-    }
-    // Change this to elapsed time, not absolute time
-    post_reboot -= pre_reboot;
-  }
-
+  // Hard reboots reset the clock to zero
   // Verify that the Nugget OS counter shows a reasonable value.
   // Use the elapsed time +5% for the threshold.
   auto threshold_microseconds =
