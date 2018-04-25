@@ -249,8 +249,9 @@ TEST_F(WeaverTest, ReadThrottleAfterHardReboot) {
 }
 
 TEST_F(WeaverTest, ReadThrottleAfterSleep) {
+  uint32_t waited = 0;
   activateThrottle(WeaverTest::slot, TEST_KEY, WRONG_KEY, 30);
-  const uint32_t waited = nugget_tools::WaitForSleep();
+  ASSERT_TRUE(nugget_tools::WaitForSleep(client.get(), &waited));
   testReadThrottle(__STAMP__, WeaverTest::slot, WRONG_KEY, 30 - waited);
 }
 

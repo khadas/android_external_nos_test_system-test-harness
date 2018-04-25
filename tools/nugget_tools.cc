@@ -4,6 +4,8 @@
 #include <nos/NuggetClient.h>
 
 #include <chrono>
+#include <cinttypes>
+#include <cstring>
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -25,6 +27,7 @@ using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 using std::chrono::microseconds;
+using std::string;
 
 namespace nugget_tools {
 
@@ -136,11 +139,48 @@ bool RebootNugget(nos::NuggetClientInterface *client, uint8_t type) {
   return true;
 }
 
-uint32_t WaitForSleep() {
-  constexpr uint32_t wait_seconds = 5;
+bool WaitForSleep(nos::NuggetClientInterface *client, uint32_t *seconds_waited) {
+  struct nugget_app_low_power_stats stats0;
+  struct nugget_app_low_power_stats stats1;
+  std::vector<uint8_t> buffer;
+
+  buffer.reserve(sizeof(struct nugget_app_low_power_stats));
+  // Grab stats before sleeping
+  if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_GET_LOW_POWER_STATS,
+                      buffer, &buffer) != app_status::APP_SUCCESS) {
+    LOG(ERROR) << "CallApp(..., NUGGET_PARAM_GET_LOW_POWER_STATS, ...) failed!\n";
+    return false;
+  }
+  memcpy(&stats0, buffer.data(), sizeof(stats0));
+
+  // Wait for Citadel to fall asleep
+  constexpr uint32_t wait_seconds = 3;
   std::this_thread::sleep_for(std::chrono::seconds(wait_seconds));
-  // TODO: Can we check it has gone to sleep?
-  return wait_seconds;
+
+  // Grab stats after sleeping
+  buffer.empty();
+  buffer.reserve(sizeof(struct nugget_app_low_power_stats));
+  if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_GET_LOW_POWER_STATS,
+                      buffer, &buffer) != app_status::APP_SUCCESS) {
+    LOG(ERROR) << "CallApp(..., NUGGET_PARAM_GET_LOW_POWER_STATS, ...) failed!\n";
+    return false;
+  }
+  memcpy(&stats1, buffer.data(), sizeof(stats1));
+
+  // Verify that Citadel went to sleep but didn't reboot
+  if (stats1.hard_reset_count == stats0.hard_reset_count &&
+      stats1.deep_sleep_count == stats0.deep_sleep_count + 1 &&
+      stats1.wake_count == stats0.wake_count +1 &&
+      stats1.time_spent_in_deep_sleep > stats0.time_spent_in_deep_sleep) {
+    // Yep, looks good
+    if (seconds_waited) {
+      *seconds_waited = wait_seconds;
+    }
+    return true;
+  }
+
+  LOG(ERROR) << "Citadel didn't go to sleep as expected\n";
+  return false;
 }
 
 bool WipeUserData(nos::NuggetClientInterface *client) {
