@@ -34,9 +34,9 @@ namespace nugget_tools {
 namespace {
 
 void WaitForHardReboot() {
-  // POST (which takes ~50ms) runs on a hard-reboot, plus an
+  // POST (which takes ~100ms) runs on a hard-reboot, plus an
   // additional ~30ms for RO+RW verification.
-  std::this_thread::sleep_for(std::chrono::milliseconds(80));
+  std::this_thread::sleep_for(std::chrono::milliseconds(130));
 }
 
 } // namesapce
@@ -82,18 +82,25 @@ bool CyclesSinceBoot(nos::NuggetClientInterface *client, uint32_t *cycles) {
 }
 
 bool RebootNugget(nos::NuggetClientInterface *client) {
+  struct nugget_app_low_power_stats stats0;
+  struct nugget_app_low_power_stats stats1;
+  std::vector<uint8_t> buffer;
+
+  // Grab stats before sleeping
+  buffer.reserve(sizeof(struct nugget_app_low_power_stats));
+  if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_GET_LOW_POWER_STATS,
+                      buffer, &buffer) != app_status::APP_SUCCESS) {
+    LOG(ERROR) << "CallApp(..., NUGGET_PARAM_GET_LOW_POWER_STATS, ...) failed!\n";
+    return false;
+  }
+  memcpy(&stats0, buffer.data(), sizeof(stats0));
+
   // Capture the time here to allow for some tolerance on the reported time.
   auto start = high_resolution_clock::now();
 
-  // See what time Nugget OS has now
-  uint32_t pre_reboot;
-  if (!CyclesSinceBoot(client, &pre_reboot)) {
-    return false;
-  }
-
-  // Tell it to reboot: 0 = soft reboot, 1 = hard reboot
-  std::vector<uint8_t> input_buffer;
-  if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_REBOOT, input_buffer,
+  // Tell Nugget OS to reboot
+  std::vector<uint8_t> ignored;
+  if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_REBOOT, ignored,
                       nullptr) != app_status::APP_SUCCESS) {
     LOG(ERROR) << "CallApp(..., NUGGET_PARAM_REBOOT, ...) failed!\n";
     return false;
@@ -101,27 +108,32 @@ bool RebootNugget(nos::NuggetClientInterface *client) {
 
   WaitForHardReboot();
 
-  // See what time Nugget OS has after rebooting.
-  uint32_t post_reboot;
-  if (!CyclesSinceBoot(client, &post_reboot)) {
+  // Grab stats after sleeping
+  buffer.empty();
+  buffer.reserve(sizeof(struct nugget_app_low_power_stats));
+  if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_GET_LOW_POWER_STATS,
+                      buffer, &buffer) != app_status::APP_SUCCESS) {
+    LOG(ERROR) << "CallApp(..., NUGGET_PARAM_GET_LOW_POWER_STATS, ...) failed!\n";
     return false;
   }
+  memcpy(&stats1, buffer.data(), sizeof(stats1));
 
-  // Hard reboots reset the clock to zero
-  // Verify that the Nugget OS counter shows a reasonable value.
-  // Use the elapsed time +5% for the threshold.
-  auto threshold_microseconds =
+  // Figure a max elapsed time that Nugget OS should see (our time + 5%).
+  auto max_usecs =
       duration_cast<microseconds>(high_resolution_clock::now() - start) *
           105 / 100;
-  if (std::chrono::microseconds(post_reboot) > threshold_microseconds ) {
-    LOG(ERROR) << "Counter is " << post_reboot
-               << " but is expected to be less than "
-               << threshold_microseconds.count() * 1.05 << "!\n";
-    return false;
+
+  // Verify that Citadel rebooted
+  if (stats1.hard_reset_count == stats0.hard_reset_count + 1 &&
+      stats1.time_at_last_wake == 0 &&
+      stats1.deep_sleep_count == 0 &&
+      std::chrono::microseconds(stats1.time_since_hard_reset) < max_usecs) {
+    return true;
   }
 
-  // Looks okay
-  return true;
+  LOG(ERROR) << "Nugget OS failed to reboot\n";
+
+  return false;
 }
 
 bool WaitForSleep(nos::NuggetClientInterface *client, uint32_t *seconds_waited) {
