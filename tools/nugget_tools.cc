@@ -81,6 +81,22 @@ bool CyclesSinceBoot(nos::NuggetClientInterface *client, uint32_t *cycles) {
   return true;
 }
 
+static void ShowStats(const char *msg,
+                      const struct nugget_app_low_power_stats& stats) {
+  printf("%s\n", msg);
+  printf("  hard_reset_count         %" PRIu64 "\n", stats.hard_reset_count);
+  printf("  time_since_hard_reset    %" PRIu64 "\n",
+         stats.time_since_hard_reset);
+  printf("  wake_count               %" PRIu64 "\n", stats.wake_count);
+  printf("  time_at_last_wake        %" PRIu64 "\n", stats.time_at_last_wake);
+  printf("  time_spent_awake         %" PRIu64 "\n", stats.time_spent_awake);
+  printf("  deep_sleep_count         %" PRIu64 "\n", stats.deep_sleep_count);
+  printf("  time_at_last_deep_sleep  %" PRIu64 "\n",
+         stats.time_at_last_deep_sleep);
+  printf("  time_spent_in_deep_sleep %" PRIu64 "\n",
+         stats.time_spent_in_deep_sleep);
+}
+
 bool RebootNugget(nos::NuggetClientInterface *client) {
   struct nugget_app_low_power_stats stats0;
   struct nugget_app_low_power_stats stats1;
@@ -131,7 +147,10 @@ bool RebootNugget(nos::NuggetClientInterface *client) {
     return true;
   }
 
-  LOG(ERROR) << "Nugget OS failed to reboot\n";
+  LOG(ERROR) << "Citadel didn't reboot within "
+             << max_usecs.count() << " microseconds\n";
+  ShowStats("stats before waiting", stats0);
+  ShowStats("stats after waiting", stats1);
 
   return false;
 }
@@ -151,7 +170,7 @@ bool WaitForSleep(nos::NuggetClientInterface *client, uint32_t *seconds_waited) 
   memcpy(&stats0, buffer.data(), sizeof(stats0));
 
   // Wait for Citadel to fall asleep
-  constexpr uint32_t wait_seconds = 3;
+  constexpr uint32_t wait_seconds = 4;
   std::this_thread::sleep_for(std::chrono::seconds(wait_seconds));
 
   // Grab stats after sleeping
@@ -167,7 +186,7 @@ bool WaitForSleep(nos::NuggetClientInterface *client, uint32_t *seconds_waited) 
   // Verify that Citadel went to sleep but didn't reboot
   if (stats1.hard_reset_count == stats0.hard_reset_count &&
       stats1.deep_sleep_count == stats0.deep_sleep_count + 1 &&
-      stats1.wake_count == stats0.wake_count +1 &&
+      stats1.wake_count == stats0.wake_count + 1 &&
       stats1.time_spent_in_deep_sleep > stats0.time_spent_in_deep_sleep) {
     // Yep, looks good
     if (seconds_waited) {
@@ -176,7 +195,10 @@ bool WaitForSleep(nos::NuggetClientInterface *client, uint32_t *seconds_waited) 
     return true;
   }
 
-  LOG(ERROR) << "Citadel didn't go to sleep as expected\n";
+  LOG(ERROR) << "Citadel didn't sleep\n";
+  ShowStats("stats before waiting", stats0);
+  ShowStats("stats after waiting", stats1);
+
   return false;
 }
 
