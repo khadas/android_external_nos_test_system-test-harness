@@ -457,6 +457,11 @@ TEST_F(AvbTest, DeviceLockTest)
   ASSERT_EQ(locks[DEVICE], 0x00);
 }
 
+TEST_F(AvbTest, SetDeviceLockIsIdempotent) {
+  ASSERT_NO_ERROR(SetDeviceLock(0x65), "");
+  ASSERT_NO_ERROR(SetDeviceLock(0x65), "");
+}
+
 TEST_F(AvbTest, BootLockTest)
 {
   uint8_t locks[4];
@@ -541,6 +546,11 @@ TEST_F(AvbTest, BootLockTest)
   GetState(client.get(), NULL, NULL, locks);
   ASSERT_EQ(locks[DEVICE], 0x78);
   ASSERT_EQ(locks[BOOT], 0x9A);
+}
+
+TEST_F(AvbTest, SetBootLockIsIdempotent) {
+  ASSERT_NO_ERROR(SetBootLock(0x12), "");
+  ASSERT_NO_ERROR(SetBootLock(0x12), "");
 }
 
 TEST_F(AvbTest, OwnerLockTest)
