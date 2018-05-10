@@ -85,7 +85,9 @@ int main(int argc, char** argv) {
     generate_disabled_test_list(disabled_for_release_tests, &ss);
   }
 
-  ::testing::GTEST_FLAG(filter) = ss.str();
+  if (FLAGS_disable_slow_tests || FLAGS_release_tests) {
+    ::testing::GTEST_FLAG(filter) = ss.str();
+  }
 
   return RUN_ALL_TESTS();
 }
