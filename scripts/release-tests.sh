@@ -4,10 +4,10 @@ set -e
 function integration_tests() {
     mmm -j external/nos/test/system-test-harness || return 1
     adb push \
-     	out/target/product/blueline/vendor/bin/hw/citadel_integration_tests \
-     	/vendor/bin/hw || return 1
+        out/target/product/blueline/vendor/bin/hw/citadel_integration_tests \
+        /data/local/tmp || return 1
     adb exec-out \
-	'/vendor/bin/hw/citadel_integration_tests --release-tests' || return 1
+        '/data/local/tmp/citadel_integration_tests --release-tests' || return 1
 }
 
 # TODO: add AVB / Weaver / Keymaster VTS / CTS tests with filters here.
@@ -36,6 +36,10 @@ function weaver_vts_tests() {
 }
 
 # TODO: add any other tests
+
+source "${PWD}"/build/envsetup.sh
+lunch blueline-userdebug
+adb root
 
 for t in integration_tests \
 	     avb_cts_tests \
