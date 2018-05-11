@@ -9,7 +9,7 @@
 #define FLAGS_list_slow_tests false
 #define FLAGS_disable_slow_tests false
 // TODO: how does FLAGS_release_tests feature here?
-#define FLAGS_release_tests false
+#define FLAGS_release_tests true
 #else
 #include <gflags/gflags.h>
 DEFINE_bool(list_slow_tests, false, "List tests included in the set of slow tests.");
