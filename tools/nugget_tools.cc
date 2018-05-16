@@ -31,16 +31,6 @@ using std::string;
 
 namespace nugget_tools {
 
-namespace {
-
-void WaitForHardReboot() {
-  // POST (which takes ~100ms) runs on a hard-reboot, plus an
-  // additional ~30ms for RO+RW verification.
-  std::this_thread::sleep_for(std::chrono::milliseconds(130));
-}
-
-} // namesapce
-
 std::unique_ptr<nos::NuggetClientInterface> MakeNuggetClient() {
 #ifdef ANDROID
   std::unique_ptr<nos::NuggetClientInterface> client =
@@ -121,8 +111,6 @@ bool RebootNugget(nos::NuggetClientInterface *client) {
     LOG(ERROR) << "CallApp(..., NUGGET_PARAM_REBOOT, ...) failed!\n";
     return false;
   }
-
-  WaitForHardReboot();
 
   // Grab stats after sleeping
   buffer.empty();
@@ -210,7 +198,6 @@ bool WipeUserData(nos::NuggetClientInterface *client) {
                          buffer, nullptr) != app_status::APP_SUCCESS) {
     return false;
   }
-  WaitForHardReboot();
   return true;
 }
 
