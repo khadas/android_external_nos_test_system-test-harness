@@ -1,4 +1,6 @@
 #include "gtest/gtest.h"
+#include "avb_tools.h"
+#include "keymaster_tools.h"
 #include "nugget_tools.h"
 #include "nugget/app/keymaster/keymaster.pb.h"
 #include "nugget/app/keymaster/keymaster_defs.pb.h"
@@ -85,12 +87,8 @@ void ImportKeyTest::SetUpTestCase() {
 
   service.reset(new Keymaster(*client));
 
-  SetRootOfTrustRequest request;
-  SetRootOfTrustResponse response;
-  request.set_digest(string(32, '\0'));
-
-  ASSERT_NO_ERROR(service->SetRootOfTrust(request, &response), "");
-  EXPECT_EQ((ErrorCode)response.error_code(), ErrorCode::OK);
+  // Do setup that is normally done by the bootloader.
+  keymaster_tools::SetRootOfTrust(client.get());
 }
 
 void ImportKeyTest::TearDownTestCase() {

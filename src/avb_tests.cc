@@ -32,9 +32,6 @@ class AvbTest: public testing::Test {
 
   virtual void SetUp(void);
 
-  void SetBootloader(void);
-  void BootloaderDone(void);
-
   int ProductionResetTest(uint32_t selector, uint64_t nonce,
                           const uint8_t *device_data, size_t data_len,
                           const uint8_t *signature, size_t signature_len);
@@ -115,7 +112,7 @@ void AvbTest::SetUp(void)
   uint8_t locks[4];
   int code;
 
-  BootloaderDone();  // We don't need BL for setup.
+  avb_tools::BootloaderDone(client.get());  // We don't need BL for setup.
   // Perform a challenge/response. If this fails, either
   // the reset path is broken or the image is probably not
   // TEST_IMAGE=1.
@@ -133,28 +130,6 @@ void AvbTest::SetUp(void)
   EXPECT_EQ(locks[CARRIER], 0x00);
   EXPECT_EQ(locks[DEVICE], 0x00);
   EXPECT_EQ(locks[OWNER], 0x00);
-}
-
-void AvbTest::SetBootloader(void)
-{
-  // Force AVB to believe that the AP is in the BIOS.
-  ::nos::AppClient app(*client, APP_ID_AVB_TEST);
-
-  /* We have to have a buffer, because it's called by reference. */
-  std::vector<uint8_t> buffer;
-
-  // No params, no args needed. This is all that the fake "AVB_TEST" app does.
-  uint32_t retval = app.Call(0, buffer, &buffer);
-
-  EXPECT_EQ(retval, APP_SUCCESS);
-}
-
-void AvbTest::BootloaderDone(void)
-{
-  BootloaderDoneRequest request;
-
-  Avb service(*client);
-  ASSERT_NO_ERROR(service.BootloaderDone(request, nullptr), "");
 }
 
 static const uint8_t kResetKeyPem[] =
@@ -375,10 +350,10 @@ TEST_F(AvbTest, CarrierLockTest)
   ASSERT_NO_ERROR(code, "");
 
   // Set production mode
-  SetBootloader();
+  avb_tools::SetBootloader(client.get());
   code = SetProduction(client.get(), true, NULL, 0);
   ASSERT_NO_ERROR(code, "");
-  BootloaderDone();
+  avb_tools::BootloaderDone(client.get());
 
   // Test we cannot set or unset the carrier lock in production mode
   code = SetCarrierLock(0x12, carrier_data, sizeof(carrier_data));
@@ -424,7 +399,7 @@ TEST_F(AvbTest, DeviceLockTest)
   int code;
 
   // Test cannot set the lock
-  SetBootloader();
+  avb_tools::SetBootloader(client.get());
   code = SetProduction(client.get(), true, NULL, 0);
   ASSERT_NO_ERROR(code, "");
 
@@ -433,7 +408,7 @@ TEST_F(AvbTest, DeviceLockTest)
 
   // Test can set lock
   ResetProduction(client.get());
-  SetBootloader();
+  avb_tools::SetBootloader(client.get());
 
   code = SetDeviceLock(0x34);
   ASSERT_NO_ERROR(code, "");
@@ -479,7 +454,7 @@ TEST_F(AvbTest, BootLockTest)
   ASSERT_EQ(locks[BOOT], 0x00);
 
   // Show the bootloader setting and unsetting.
-  SetBootloader();
+  avb_tools::SetBootloader(client.get());
   code = SetBootLock(0x12);
   ASSERT_NO_ERROR(code, "");
 
@@ -504,7 +479,7 @@ TEST_F(AvbTest, BootLockTest)
   ASSERT_NO_ERROR(code, "");
 
   // Can lock when carrier lock is set.
-  SetBootloader();
+  avb_tools::SetBootloader(client.get());
   code = SetBootLock(0x56);
   ASSERT_NO_ERROR(code, "");
 
@@ -526,19 +501,19 @@ TEST_F(AvbTest, BootLockTest)
   ASSERT_NO_ERROR(code, "");
   code = SetProduction(client.get(), true, NULL, 0);
   ASSERT_NO_ERROR(code, "");
-  SetBootloader();
+  avb_tools::SetBootloader(client.get());
 
   // Need to be in the HLOS.
   code = SetDeviceLock(0x78);
   ASSERT_EQ(code, APP_ERROR_AVB_HLOS);
 
-  BootloaderDone();
+  avb_tools::BootloaderDone(client.get());
   code = SetDeviceLock(0x78);
   ASSERT_NO_ERROR(code, "");
 
   // We can move to a locked state when
   // device lock is true.
-  SetBootloader();
+  avb_tools::SetBootloader(client.get());
   code = SetBootLock(0x9A);
   ASSERT_NO_ERROR(code, "");
 
@@ -603,7 +578,7 @@ TEST_F(AvbTest, OwnerLockTest)
   ASSERT_EQ(locks[OWNER], 0x00);
 
   // Set the boot lock
-  SetBootloader();
+  avb_tools::SetBootloader(client.get());
   code = SetBootLock(0x43);
   ASSERT_NO_ERROR(code, "");
 
@@ -626,7 +601,7 @@ TEST_F(AvbTest, ProductionMode)
   ASSERT_FALSE(production);
 
   // Set some lock values to make sure production doesn't affect them
-  SetBootloader();
+  avb_tools::SetBootloader(client.get());
   code = SetOwnerLock(0x11, NULL, 0);
   ASSERT_NO_ERROR(code, "");
 
@@ -653,7 +628,7 @@ TEST_F(AvbTest, ProductionMode)
   // Test production cannot be turned off.
   code = SetProduction(client.get(), false, NULL, 0);
   ASSERT_EQ(code, APP_ERROR_AVB_AUTHORIZATION);
-  BootloaderDone();
+  avb_tools::BootloaderDone(client.get());
   code = SetProduction(client.get(), false, NULL, 0);
   ASSERT_EQ(code, APP_ERROR_AVB_AUTHORIZATION);
 }
@@ -676,7 +651,7 @@ TEST_F(AvbTest, Rollback)
   }
 
   // Test we can change values in bootloader mode
-  SetBootloader();
+  avb_tools::SetBootloader(client.get());
   for (i = 0; i < 8; i++) {
     code = Store(i, 0xFF00000011223344 + i);
     ASSERT_NO_ERROR(code, "");
@@ -702,7 +677,7 @@ TEST_F(AvbTest, Reset)
   int code;
 
   // Set some locks and production mode*/
-  SetBootloader();
+  avb_tools::SetBootloader(client.get());
   code = SetBootLock(0x12);
   ASSERT_NO_ERROR(code, "");
 
@@ -712,7 +687,7 @@ TEST_F(AvbTest, Reset)
   code = SetProduction(client.get(), true, NULL, 0);
   ASSERT_NO_ERROR(code, "");
 
-  BootloaderDone();
+  avb_tools::BootloaderDone(client.get());
 
   GetState(client.get(), &bootloader, &production, locks);
   ASSERT_FALSE(bootloader);
