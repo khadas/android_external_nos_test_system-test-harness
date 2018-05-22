@@ -321,4 +321,13 @@ TEST_F(WeaverTest, ProductionResetWipesUserData) {
   testRead(__STAMP__, WeaverTest::slot, TEST_KEY, ZERO_VALUE);
 }
 
+// Regression tests
+TEST_F(WeaverTest, WipeUserDataWriteSlot0ReadSlot1) {
+  testWrite(__STAMP__, 0, TEST_KEY, TEST_VALUE);
+  testWrite(__STAMP__, 1, TEST_KEY, TEST_VALUE);
+  ASSERT_TRUE(nugget_tools::WipeUserData(client.get()));
+  testWrite(__STAMP__, 0, TEST_KEY, TEST_VALUE);
+  testRead(__STAMP__, 1, TEST_KEY, ZERO_VALUE);
+}
+
 }  // namespace
