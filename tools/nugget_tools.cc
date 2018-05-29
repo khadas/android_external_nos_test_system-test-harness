@@ -191,14 +191,43 @@ bool WaitForSleep(nos::NuggetClientInterface *client, uint32_t *seconds_waited) 
 }
 
 bool WipeUserData(nos::NuggetClientInterface *client) {
+  struct nugget_app_low_power_stats stats0;
+  struct nugget_app_low_power_stats stats1;
+  std::vector<uint8_t> buffer;
+
+  // Grab stats before sleeping
+  buffer.reserve(sizeof(struct nugget_app_low_power_stats));
+  if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_GET_LOW_POWER_STATS,
+                      buffer, &buffer) != app_status::APP_SUCCESS) {
+    LOG(ERROR) << "CallApp(..., NUGGET_PARAM_GET_LOW_POWER_STATS, ...) failed!\n";
+    return false;
+  }
+  memcpy(&stats0, buffer.data(), sizeof(stats0));
+
   // Request wipe of user data which should hard reboot
-  std::vector<uint8_t> buffer(4);
+  buffer.resize(4);
   *reinterpret_cast<uint32_t *>(buffer.data()) = htole32(ERASE_CONFIRMATION);
   if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_NUKE_FROM_ORBIT,
                          buffer, nullptr) != app_status::APP_SUCCESS) {
     return false;
   }
-  return true;
+
+  // Grab stats after sleeping
+  buffer.empty();
+  buffer.reserve(sizeof(struct nugget_app_low_power_stats));
+  if (client->CallApp(APP_ID_NUGGET, NUGGET_PARAM_GET_LOW_POWER_STATS,
+                      buffer, &buffer) != app_status::APP_SUCCESS) {
+    LOG(ERROR) << "CallApp(..., NUGGET_PARAM_GET_LOW_POWER_STATS, ...) failed!\n";
+    return false;
+  }
+  memcpy(&stats1, buffer.data(), sizeof(stats1));
+
+  // Verify that Citadel didn't reset
+  const bool ret = stats1.hard_reset_count == stats0.hard_reset_count;
+  if (!ret) {
+    LOG(ERROR) << "Citadel reset while wiping user data\n";
+  }
+  return ret;
 }
 
 }  // namespace nugget_tools

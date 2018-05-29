@@ -531,6 +531,14 @@ TEST_F(AvbTest, SetBootLockIsIdempotent) {
   ASSERT_NO_ERROR(SetBootLock(0x12), "");
 }
 
+TEST_F(AvbTest, SetBootLockAfterWipingUserData) {
+  // This is a sequence of commands that the bootloader will issue
+  ASSERT_NO_ERROR(SetProduction(client.get(), true, NULL, 0), "");
+  avb_tools::SetBootloader(client.get());
+  ASSERT_TRUE(nugget_tools::WipeUserData(client.get()));
+  ASSERT_NO_ERROR(SetBootLock(0xdc), "");
+}
+
 TEST_F(AvbTest, OwnerLockTest)
 {
   uint8_t owner_key[AVB_METADATA_MAX_SIZE];
