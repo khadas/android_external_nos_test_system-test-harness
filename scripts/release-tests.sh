@@ -39,6 +39,12 @@ function auth_secret_vts_tests() {
     atest VtsHalAuthSecretV1_0TargetTest || return 1
 }
 
+function pay_cts_tests() {
+    # TODO(ngm): uncomment once these are working.
+    # runtest --path \
+    #     cts/tests/tests/keystore/src/android/keystore/cts/ImportWrappedKeyTest.java || return 1
+}
+
 # TODO: add any other tests
 
 source "${PWD}"/build/envsetup.sh
@@ -50,7 +56,8 @@ for t in integration_tests \
 	     keymaster_vts_tests \
 	     weaver_cts_tests \
 	     weaver_vts_tests \
-             auth_secret_vts_tests; do
+             auth_secret_vts_tests \
+             pay_cts_tests; do
     if eval "${t}"; then
 	echo "PASS: ${t}"
     else
