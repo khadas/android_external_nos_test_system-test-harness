@@ -61,6 +61,8 @@ int main(int argc, char** argv) {
       "NuggetOsTest.Trng",
       "WeaverTest.ProductionResetWipesUserData",
       "AvbTest.*",
+      "ImportKeyTest.*",
+      "ImportWrappedKeyTest.ImportSuccess",
   };
 
   testing::InitGoogleMock(&argc, argv);
