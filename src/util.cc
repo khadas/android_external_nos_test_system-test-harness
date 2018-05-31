@@ -469,17 +469,17 @@ void TestHarness::Init(const char* path) {
   if (FLAGS_util_print_uart) {
     print_uart_worker = std::unique_ptr<std::thread>(new std::thread(
         [](TestHarness* harness){
-          //if (harness->getVerbosity() >= INFO) {
+          if (harness->getVerbosity() >= INFO) {
             std::cout << "Citadel UART printing enabled!\n";
             std::cout.flush();
-          //}
+          }
           while(harness->ttyState()) {
             harness->PrintUntilClosed();
           }
-          //if (harness->getVerbosity() >= INFO) {
+          if (harness->getVerbosity() >= INFO) {
             std::cout << "Citadel UART printing disabled!\n";
             std::cout.flush();
-          //}
+          }
         }, this));
   }
 }
