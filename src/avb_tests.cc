@@ -9,6 +9,7 @@
 #include <application.h>
 #include <nos/AppClient.h>
 #include <nos/NuggetClientInterface.h>
+#include "util.h"
 
 #include <openssl/bio.h>
 #include <openssl/evp.h>
@@ -26,6 +27,7 @@ namespace {
 class AvbTest: public testing::Test {
  protected:
   static unique_ptr<nos::NuggetClientInterface> client;
+  static unique_ptr<test_harness::TestHarness> uart_printer;
 
   static void SetUpTestCase();
   static void TearDownTestCase();
@@ -93,8 +95,11 @@ class AvbTest: public testing::Test {
 };
 
 unique_ptr<nos::NuggetClientInterface> AvbTest::client;
+unique_ptr<test_harness::TestHarness> AvbTest::uart_printer;
 
 void AvbTest::SetUpTestCase() {
+  uart_printer = test_harness::TestHarness::MakeUnique();
+
   client = nugget_tools::MakeNuggetClient();
   client->Open();
   EXPECT_TRUE(client->IsOpen()) << "Unable to connect";
@@ -103,6 +108,8 @@ void AvbTest::SetUpTestCase() {
 void AvbTest::TearDownTestCase() {
   client->Close();
   client = unique_ptr<nos::NuggetClientInterface>();
+
+  uart_printer = nullptr;
 }
 
 void AvbTest::SetUp(void)

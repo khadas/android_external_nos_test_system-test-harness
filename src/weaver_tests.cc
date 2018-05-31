@@ -6,6 +6,7 @@
 #include "avb_tools.h"
 #include "nugget_tools.h"
 #include "nugget/app/weaver/weaver.pb.h"
+#include "util.h"
 #include "Weaver.client.h"
 
 #define __STAMP_STR1__(a) #a
@@ -27,6 +28,7 @@ class WeaverTest: public testing::Test {
   static uint32_t slot;
 
   static unique_ptr<nos::NuggetClientInterface> client;
+  static unique_ptr<test_harness::TestHarness> uart_printer;
 
   static void SetUpTestCase();
   static void TearDownTestCase();
@@ -63,8 +65,11 @@ std::random_device WeaverTest::random_number_generator;
 uint32_t WeaverTest::slot = WeaverTest::random_number_generator() & SLOT_MASK;
 
 unique_ptr<nos::NuggetClientInterface> WeaverTest::client;
+unique_ptr<test_harness::TestHarness> WeaverTest::uart_printer;
 
 void WeaverTest::SetUpTestCase() {
+  uart_printer = test_harness::TestHarness::MakeUnique();
+
   client = nugget_tools::MakeNuggetClient();
   client->Open();
   EXPECT_TRUE(client->IsOpen()) << "Unable to connect";
@@ -73,6 +78,8 @@ void WeaverTest::SetUpTestCase() {
 void WeaverTest::TearDownTestCase() {
   client->Close();
   client = unique_ptr<nos::NuggetClientInterface>();
+
+  uart_printer = nullptr;
 }
 
 void WeaverTest::testWrite(const string& msg, uint32_t slot, const uint8_t *key,
