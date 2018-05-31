@@ -58,8 +58,7 @@ class NuggetOsTest: public testing::Test {
 unique_ptr<test_harness::TestHarness> NuggetOsTest::harness;
 
 void NuggetOsTest::SetUpTestCase() {
-  harness = unique_ptr<test_harness::TestHarness>(
-      new test_harness::TestHarness());
+  harness = TestHarness::MakeUnique();
 
   if (!harness->UsingSpi()) {
     EXPECT_TRUE(harness->SwitchFromConsoleToProtoApi());

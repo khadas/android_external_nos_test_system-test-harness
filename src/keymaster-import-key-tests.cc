@@ -6,6 +6,7 @@
 #include "nugget/app/keymaster/keymaster_defs.pb.h"
 #include "nugget/app/keymaster/keymaster_types.pb.h"
 #include "Keymaster.client.h"
+#include "util.h"
 
 #include "src/blob.h"
 #include "src/macros.h"
@@ -32,6 +33,7 @@ class ImportKeyTest: public testing::Test {
  protected:
   static unique_ptr<nos::NuggetClientInterface> client;
   static unique_ptr<Keymaster> service;
+  static unique_ptr<test_harness::TestHarness> uart_printer;
 
   static void SetUpTestCase();
   static void TearDownTestCase();
@@ -79,8 +81,11 @@ class ImportKeyTest: public testing::Test {
 
 unique_ptr<nos::NuggetClientInterface> ImportKeyTest::client;
 unique_ptr<Keymaster> ImportKeyTest::service;
+unique_ptr<test_harness::TestHarness> ImportKeyTest::uart_printer;
 
 void ImportKeyTest::SetUpTestCase() {
+  uart_printer = test_harness::TestHarness::MakeUnique();
+
   client = nugget_tools::MakeNuggetClient();
   client->Open();
   EXPECT_TRUE(client->IsOpen()) << "Unable to connect";
@@ -94,6 +99,8 @@ void ImportKeyTest::SetUpTestCase() {
 void ImportKeyTest::TearDownTestCase() {
   client->Close();
   client = unique_ptr<nos::NuggetClientInterface>();
+
+  uart_printer = nullptr;
 }
 
 // TODO: refactor into import key tests.

@@ -23,16 +23,20 @@ class NuggetCoreTest: public testing::Test {
   static void TearDownTestCase();
 
   static unique_ptr<nos::NuggetClientInterface> client;
+  static unique_ptr<test_harness::TestHarness> uart_printer;
   static vector<uint8_t> input_buffer;
   static vector<uint8_t> output_buffer;
 };
 
 unique_ptr<nos::NuggetClientInterface> NuggetCoreTest::client;
+unique_ptr<test_harness::TestHarness> NuggetCoreTest::uart_printer;
 
 vector<uint8_t> NuggetCoreTest::input_buffer;
 vector<uint8_t> NuggetCoreTest::output_buffer;
 
 void NuggetCoreTest::SetUpTestCase() {
+  uart_printer = test_harness::TestHarness::MakeUnique();
+
   client = nugget_tools::MakeNuggetClient();
   client->Open();
   input_buffer.reserve(0x4000);
@@ -43,6 +47,8 @@ void NuggetCoreTest::SetUpTestCase() {
 void NuggetCoreTest::TearDownTestCase() {
   client->Close();
   client = unique_ptr<nos::NuggetClientInterface>();
+
+  uart_printer = nullptr;
 }
 
 TEST_F(NuggetCoreTest, GetVersionStringTest) {

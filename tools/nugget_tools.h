@@ -18,6 +18,8 @@
 
 namespace nugget_tools {
 
+std::string GetCitadelUSBSerialNo();
+
 std::unique_ptr<nos::NuggetClientInterface> MakeNuggetClient();
 
 // Always does a hard reboot. Use WaitForSleep() if you just want deep sleep.
