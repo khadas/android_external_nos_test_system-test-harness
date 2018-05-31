@@ -21,6 +21,7 @@
 
 #ifdef ANDROID
 #define FLAGS_util_use_ahdlc false
+#define FLAGS_util_print_uart false
 #else
 #include "gflags/gflags.h"
 
@@ -42,6 +43,9 @@ namespace test_harness {
 namespace {
 
 int GetVerbosityFromFlag() {
+#ifdef ANDROID
+  return TestHarness::ERROR;
+#else
   std::string upper_case_flag;
   upper_case_flag.reserve(FLAGS_util_verbosity.size());
   std::transform(FLAGS_util_verbosity.begin(), FLAGS_util_verbosity.end(),
@@ -58,8 +62,10 @@ int GetVerbosityFromFlag() {
 
   // Default to ERROR.
   return TestHarness::ERROR;
+#endif  // ANDROID
 }
 
+#ifndef ANDROID
 string find_uart(int verbosity) {
   constexpr char dir_path[] = "/dev/";
   auto dir = opendir(dir_path);
@@ -96,6 +102,7 @@ string find_uart(int verbosity) {
   closedir(dir);
   return return_value;
 }
+#endif  // ANDROID
 
 }  // namespace
 
@@ -696,8 +703,6 @@ string TestHarness::ReadUntil(microseconds end) {
 
 void TestHarness::PrintUntilClosed() {
 #ifdef CONFIG_NO_UART
-  std::this_thread::sleep_for(end);
-  return "";
 #else
   if (!ttyState()) {
     return;
