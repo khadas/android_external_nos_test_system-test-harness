@@ -40,6 +40,7 @@ function auth_secret_vts_tests() {
 }
 
 function pay_cts_tests() {
+  :
     # TODO(ngm): uncomment once these are working.
     # runtest --path \
     #     cts/tests/tests/keystore/src/android/keystore/cts/ImportWrappedKeyTest.java || return 1
@@ -47,8 +48,10 @@ function pay_cts_tests() {
 
 # TODO: add any other tests
 
-source "${PWD}"/build/envsetup.sh
-lunch blueline-userdebug
+if [ -z "${TARGET_PRODUCT:-}" ]; then
+  echo "You need to run the Android setup stuff first"
+  exit 1
+fi
 
 for t in integration_tests \
 	     oem_lock_vts_tests \
