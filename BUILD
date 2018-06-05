@@ -17,6 +17,7 @@ cc_binary(
         "src/runtests.cc",
         "src/weaver_tests.cc",
         "src/avb_tests.cc",
+        "src/transport_tests.cc",
     ],
     copts = COPTS,
     deps = [

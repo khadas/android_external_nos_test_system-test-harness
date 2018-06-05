@@ -31,6 +31,16 @@ using std::string;
 
 namespace nugget_tools {
 
+bool IsDirectDeviceClient() {
+#ifdef ANDROID
+  nos::NuggetClient client;
+  client.Open();
+  return client.IsOpen();
+#else
+  return true;
+#endif
+}
+
 std::string GetCitadelUSBSerialNo() {
 #ifdef ANDROID
   return "";
@@ -58,6 +68,17 @@ std::unique_ptr<nos::NuggetClientInterface> MakeNuggetClient() {
   return client;
 #else
   return std::unique_ptr<nos::NuggetClientInterface>(
+      new nos::NuggetClient(GetCitadelUSBSerialNo()));
+#endif
+}
+
+std::unique_ptr<nos::NuggetClient> MakeDirectNuggetClient() {
+#ifdef ANDROID
+  std::unique_ptr<nos::NuggetClient> client =
+      std::unique_ptr<nos::NuggetClient>(new nos::NuggetClient());
+  return client;
+#else
+  return std::unique_ptr<nos::NuggetClient>(
       new nos::NuggetClient(GetCitadelUSBSerialNo()));
 #endif
 }
