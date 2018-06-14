@@ -70,6 +70,10 @@ struct km_blob {
 		/* TODO: is sw_enforced expected to be managed by h/w? */
 		struct blob_enforcements sw_enforced;
 		struct blob_enforcements tee_enforced;
+		uint32_t os_version;
+		uint32_t os_patchlevel;
+		uint32_t vendor_patchlevel;
+		uint32_t boot_patchlevel;
 		uint32_t algorithm;
 		union {
 			struct blob_rsa rsa;
