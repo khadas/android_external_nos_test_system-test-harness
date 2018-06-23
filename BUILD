@@ -82,7 +82,6 @@ cc_library(
         "src/util.cc",
     ],
     hdrs = [
-        "src/blob.h",
         "src/macros.h",
         "src/util.h",
     ],
