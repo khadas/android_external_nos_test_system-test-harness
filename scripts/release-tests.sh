@@ -29,8 +29,7 @@ function keymaster_vts_tests() {
     adb shell \
         /data/nativetest64/VtsHalKeymasterV4_0TargetTest/VtsHalKeymasterV4_0TargetTest \
         --verbose \
-        --hal_service_instance=android.hardware.keymaster@4.0::IKeymasterDevice/strongbox \
-        --gtest_filter=-EncryptionOperationsTest.RsaNoPaddingShortMessage || return 1
+        --hal_service_instance=android.hardware.keymaster@4.0::IKeymasterDevice/strongbox || return 1
 }
 
 function weaver_cts_tests() {
