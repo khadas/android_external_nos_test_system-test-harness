@@ -13,7 +13,6 @@
 namespace keymaster_tools {
 
 void SetRootOfTrust(nos::NuggetClientInterface *client);
-void SetBootState(nos::NuggetClientInterface *client);
 
 }  // namespace keymaster_tools
 
